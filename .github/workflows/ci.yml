@@ -1,0 +1,47 @@
+name: RunPod On Master Merge
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  runpod-start-and-stop:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Start RunPod instance
+        id: start_pod
+        run: |
+          echo "Starting RunPod pod..."
+          POD_TEMPLATE_ID="lkwpvoo6fz"
+
+          RESPONSE=$(curl -s -X POST https://api.runpod.io/graphql \
+            -H "Authorization: ${{ secrets.RUNPOD_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"mutation { podFindAndDeployOnDemand(input: { templateId: \"'"$POD_TEMPLATE_ID"'\" }) { id status } }"}')
+
+          echo "$RESPONSE"
+          POD_ID=$(echo "$RESPONSE" | jq -r '.data.podFindAndDeployOnDemand.id')
+
+          if [ "$POD_ID" == "null" ] || [ -z "$POD_ID" ]; then
+            echo "Failed to start RunPod pod."
+            exit 1
+          fi
+
+          echo "POD_ID=$POD_ID" >> $GITHUB_ENV
+
+      - name: Wait for 60 seconds
+        run: sleep 60
+
+      - name: Terminate RunPod instance
+        if: env.POD_ID != ''
+        run: |
+          echo "Terminating RunPod pod $POD_ID..."
+          curl -s -X POST https://api.runpod.io/graphql \
+            -H "Authorization: ${{ secrets.RUNPOD_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"mutation { podTerminate(input: { podId: \"'"$POD_ID"'\" }) { id status } }"}'
