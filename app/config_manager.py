@@ -55,7 +55,22 @@ class ConfigManager:
         
         if missing_keys:
             raise ValueError(f"Missing required configuration keys in '{section}': {missing_keys}")
-
+    
+    def validate_dataclass_config(self, section: str, dataclass_type) -> None:
+        """Validate that a section contains all fields required by a dataclass."""
+        from dataclasses import fields
+        
+        section_config = self.get_section(section)
+        required_fields = [field.name for field in fields(dataclass_type)]
+        missing_keys = [field for field in required_fields if field not in section_config]
+        
+        if missing_keys:
+            raise ValueError(f"Missing required configuration keys in '{section}' for {dataclass_type.__name__}: {missing_keys}")
+        
+        # Optional: Check for extra keys that don't belong to the dataclass
+        extra_keys = [key for key in section_config.keys() if key not in required_fields]
+        if extra_keys:
+            print(f"Warning: Extra configuration keys in '{section}' not used by {dataclass_type.__name__}: {extra_keys}")
 
 # Dataclass approach for type safety
 @dataclass
@@ -74,6 +89,7 @@ class FineTunerConfig:
     target_modules: list
     bias: str
     training_data_id: str # Hugging Face dataset ID or local path
+    validation_data_id: str | None  # Optional, can be None
     dataset_num_proc: int # Number of processes for dataset loading
     question_column: str  
     ground_truth_column: str  
@@ -83,7 +99,8 @@ class FineTunerConfig:
     run_name_prefix: str 
     run_name_suffix: str
     wandb_project_name: str
-    device_batch_size: int
+    device_train_batch_size: int
+    device_validation_batch_size: int
     grad_accumulation: int
     epochs: int
     learning_rate: float
@@ -97,6 +114,8 @@ class FineTunerConfig:
     save_steps: int # Save every n steps
     save_total_limit: int   # Limit the number of saved checkpoints
     push_to_hub: bool       # Push the model to Hugging Face Hub
+    report_to: str  # Reporting tool, e.g., "wandb", "tensorboard", "none"
+    model_local_output_dir: str  # Local directory to save the model and checkpoints
     packing: bool   # Can make 5x training faster, for shorter sequences
     use_gradient_checkpointing: str | bool # Can be True, False, or 'unsloth' - for very large contexts
     use_flash_attention: bool
@@ -104,10 +123,11 @@ class FineTunerConfig:
     loftq_config: Any  # Can be null
     question_part: str
     answer_part: str
-
+    train_on_responses_only: bool  # If True, only train (i.e., calculate loss) on responses, not questions. Refer: https://github.com/unslothai/unsloth/issues/823
 
     @classmethod
     def from_config(cls, config_manager: ConfigManager):
+        config_manager.validate_dataclass_config("fine_tuner", cls)
         section = config_manager.get_section("fine_tuner")
         return cls(**section)
 
@@ -131,6 +151,7 @@ class InferencerConfig:
     
     @classmethod
     def from_config(cls, config_manager: ConfigManager):
+        config_manager.validate_dataclass_config("inferencer", cls)
         section = config_manager.get_section("inferencer")
         return cls(**section)
 
@@ -143,6 +164,7 @@ class EvaluatorConfig:
     
     @classmethod
     def from_config(cls, config_manager: ConfigManager):
+        config_manager.validate_dataclass_config("evaluator", cls)
         section = config_manager.get_section("evaluator")
         return cls(**section)
 
