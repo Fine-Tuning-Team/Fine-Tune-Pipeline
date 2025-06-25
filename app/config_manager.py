@@ -79,9 +79,9 @@ class FineTunerConfig:
     ground_truth_column: str  
     system_prompt_column: str | None  # Optional, can be None
     system_prompt_override_text: str | None  # Optional, can be None
-    wandb_run_name: str | None # Leave empty for random name
-    wandb_run_name_prefix: str | None # Leave empty for no prefix
-    wandb_run_name_suffix: str | None # Leave empty for no suffix
+    run_name: str | None # Leave empty for random name
+    run_name_prefix: str 
+    run_name_suffix: str
     wandb_project_name: str
     device_batch_size: int
     grad_accumulation: int
@@ -145,3 +145,13 @@ class EvaluatorConfig:
     def from_config(cls, config_manager: ConfigManager):
         section = config_manager.get_section("evaluator")
         return cls(**section)
+
+# Global config instance (singleton pattern)
+_config_manager = None
+
+def get_config_manager(config_path: str = "config.toml") -> ConfigManager:
+    """Get the global configuration manager instance."""
+    global _config_manager
+    if _config_manager is None:
+        _config_manager = ConfigManager(config_path)
+    return _config_manager

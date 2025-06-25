@@ -16,9 +16,9 @@ question_column = "question"
 ground_truth_column = "answer"
 system_prompt_column = null  # Optional, can be null
 system_prompt_override_text = null  # Optional, can be null
-wandb_run_name = null  # Leave null for random name
-wandb_run_name_prefix = null  # Leave null for no prefix
-wandb_run_name_suffix = null  # Leave null for no suffix
+run_name = null  # Leave null for random name; used for both wandb and mlflow
+run_name_prefix = "" 
+run_name_suffix = ""
 wandb_project_name = "fine-tuning-project"
 device_batch_size = 4
 grad_accumulation = 4
@@ -39,8 +39,8 @@ use_gradient_checkpointing = "unsloth"  # Can be true, false, or "unsloth"
 use_flash_attention = true
 use_rslora = false
 loftq_config = null  # Can be null
-question_part = "<|im_start|>user\n"
-answer_part = "<|im_start|>assistant\n"
+user_part_in_chat_template = "<|im_start|>user\n"
+assistant_part_in_chat_template = "<|im_start|>assistant\n"
 
 [inferencer]
 max_sequence_length = 4096
