@@ -1,0 +1,64 @@
+[fine_tuner]
+base_model_id = "microsoft/DialoGPT-medium"  # Hugging Face model ID or local path
+max_sequence_length = 4096
+dtype = null  # Can be "float16", "bfloat16", or null for auto
+load_in_4bit = true
+load_in_8bit = false
+full_finetuning = false
+rank = 16
+lora_alpha = 16
+lora_dropout = 0.1
+target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+bias = "none"
+training_data_id = "your-dataset-id"  # Hugging Face dataset ID or local path
+dataset_num_proc = 4  # Number of processes for dataset loading
+question_column = "question"
+ground_truth_column = "answer"
+system_prompt_column = null  # Optional, can be null
+system_prompt_override_text = null  # Optional, can be null
+wandb_run_name = null  # Leave null for random name
+wandb_run_name_prefix = null  # Leave null for no prefix
+wandb_run_name_suffix = null  # Leave null for no suffix
+wandb_project_name = "fine-tuning-project"
+device_batch_size = 4
+grad_accumulation = 4
+epochs = 3
+learning_rate = 0.0002
+warmup_steps = 5
+optimizer = "paged_adamw_8bit"
+weight_decay = 0.01
+lr_scheduler_type = "linear"
+seed = 42  # Random seed for reproducibility
+log_steps = 10  # Log every n steps
+log_first_step = true
+save_steps = 20  # Save every n steps
+save_total_limit = 3  # Limit the number of saved checkpoints
+push_to_hub = false  # Push the model to Hugging Face Hub
+packing = false  # Can make 5x training faster, for shorter sequences
+use_gradient_checkpointing = "unsloth"  # Can be true, false, or "unsloth"
+use_flash_attention = true
+use_rslora = false
+loftq_config = null  # Can be null
+question_part = "<|im_start|>user\n"
+answer_part = "<|im_start|>assistant\n"
+
+[inferencer]
+max_sequence_length = 4096
+dtype = null  # Can be "float16", "bfloat16", or null for auto
+load_in_4bit = true
+load_in_8bit = false
+training_data_id = "your-dataset-id"  # Same as fine_tuner or different test set
+question_column = "question"
+ground_truth_column = "answer"
+system_prompt_column = null  # Optional, can be null
+system_prompt_override_text = null  # Optional, can be null
+max_new_tokens = 512
+use_cache = true
+temperature = 0.7
+min_p = 0.1
+hf_user_id = "your-huggingface-username"  # Used to generate model path
+
+[evaluator]
+metrics = ["bleu", "rouge", "bert_score"]  # List of evaluation metrics
+llm_model_id = "gpt-3.5-turbo"  # LLM for evaluation
+embedding_model_id = null  # Optional embedding model for semantic evaluation
