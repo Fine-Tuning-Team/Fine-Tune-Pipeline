@@ -3,7 +3,7 @@ name: RunPod On Master Merge
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   runpod-start-and-stop:
