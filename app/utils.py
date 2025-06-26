@@ -1,9 +1,9 @@
-from datasets import Dataset
+from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
 import datasets
 import pandas as pd
 import os
 
-
+# DEPRECATED: Will be removed in future versions
 def _load_local_dataset(self, data_dir):
     """
     Load a dataset from a local directory. Assumes there is one file in the directory.
@@ -21,6 +21,24 @@ def _load_local_dataset(self, data_dir):
     else:
         raise ValueError(f"Unsupported file format: {file_path}")
     
-        
+# DEPRECATED: Will be removed in future versions
 def _convert_df_to_hf_dataset(self, df) -> datasets.arrow_dataset.Dataset:
     return Dataset.from_pandas(df)
+
+
+def load_huggingface_dataset(dataset_id: str) -> (DatasetDict | Dataset | IterableDatasetDict | IterableDataset):
+        """
+        Load a dataset from Hugging Face. Whether the data is jsonl, csv, parquet or any other format, it will be loaded as a Hugging Face Dataset.
+        Args:
+            dataset_id (str): The ID of the dataset on Hugging Face.
+        Returns:
+            datasets.arrow_dataset.Dataset: The loaded dataset.
+        """
+        try:
+            dataset = datasets.load_dataset(dataset_id)
+            if isinstance(dataset, dict):
+                # If the dataset is a dictionary, return the first split
+                return list(dataset.values())[0]
+            return dataset
+        except Exception as e:
+            raise ValueError(f"Failed to load dataset from Hugging Face with ID '{dataset_id}': {e}")
