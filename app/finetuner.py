@@ -1,6 +1,6 @@
 import unsloth  # type: ignore
-from unsloth import FastLanguageModel, is_bfloat16_supported # type: ignore
-from unsloth.chat_templates import get_chat_template, train_on_responses_only # type: ignore
+from unsloth import FastLanguageModel, is_bfloat16_supported  # type: ignore
+from unsloth.chat_templates import get_chat_template, train_on_responses_only  # type: ignore
 
 # import torch
 import os
@@ -17,6 +17,7 @@ from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 from app.config_manager import get_config_manager, FineTunerConfig
 from app.utils import load_huggingface_dataset, login_huggingface, setup_run_name
 
+
 class FineTune:
     def __init__(self, *, config_manager=get_config_manager()):
         # Load configuration
@@ -29,10 +30,11 @@ class FineTune:
         # Instance variables
         self.model = None
         self.tokenizer = None
-        self.run_name = None   
+        self.run_name = None
 
-
-    def load_base_model_and_tokenizer(self) -> tuple[FastLanguageModel, PreTrainedTokenizerBase]:
+    def load_base_model_and_tokenizer(
+        self,
+    ) -> tuple[FastLanguageModel, PreTrainedTokenizerBase]:
         """
         Load the base model and tokenizer from the specified model name.
         Returns:
@@ -40,13 +42,13 @@ class FineTune:
             Tokenizer: The tokenizer associated with the model.
         """
         return FastLanguageModel.from_pretrained(
-            model_name = self.config.base_model_id,
-            max_seq_length = self.config.max_sequence_length,
-            dtype = self.config.dtype,
-            load_in_4bit = self.config.load_in_4bit,
-            load_in_8bit = self.config.load_in_8bit,
-            full_finetuning = self.config.full_finetuning,
-            token = os.getenv("HF_TOKEN")   # For gated models
+            model_name=self.config.base_model_id,
+            max_seq_length=self.config.max_sequence_length,
+            dtype=self.config.dtype,
+            load_in_4bit=self.config.load_in_4bit,
+            load_in_8bit=self.config.load_in_8bit,
+            full_finetuning=self.config.full_finetuning,
+            token=os.getenv("HF_TOKEN"),  # For gated models
         )
 
     def get_peft_model(self) -> FastLanguageModel:
@@ -56,18 +58,20 @@ class FineTune:
             FastLanguageModel: The PEFT model.
         """
         if self.model is None or self.tokenizer is None:
-            raise ValueError("Model and tokenizer must be loaded before converting to PEFT model.")
+            raise ValueError(
+                "Model and tokenizer must be loaded before converting to PEFT model."
+            )
         return FastLanguageModel.get_peft_model(
             self.model,
-            r = self.config.rank,
-            target_modules = self.config.target_modules,
-            lora_alpha = self.config.lora_alpha,
-            lora_dropout = self.config.lora_dropout,
-            bias = self.config.bias,
-            use_gradient_checkpointing = self.config.use_gradient_checkpointing,
-            random_state = self.config.seed,
-            use_rslora = self.config.use_rslora,
-            loftq_config = self.config.loftq_config,
+            r=self.config.rank,
+            target_modules=self.config.target_modules,
+            lora_alpha=self.config.lora_alpha,
+            lora_dropout=self.config.lora_dropout,
+            bias=self.config.bias,
+            use_gradient_checkpointing=self.config.use_gradient_checkpointing,
+            random_state=self.config.seed,
+            use_rslora=self.config.use_rslora,
+            loftq_config=self.config.loftq_config,
         )
 
     def convert_a_data_row_to_conversation_format(self, data_row) -> dict:
@@ -97,13 +101,14 @@ class FineTune:
         output = {
             self.CONVERSATIONS_KEY: [
                 {"role": "user", "content": user_part},
-                {"role": "assistant", "content": ground_truth}
+                {"role": "assistant", "content": ground_truth},
             ]
         }
         if system_part is not None:
-            output[self.CONVERSATIONS_KEY].insert(0, {"role": "system", "content": system_part})
+            output[self.CONVERSATIONS_KEY].insert(
+                0, {"role": "system", "content": system_part}
+            )
         return output
-
 
     def apply_chat_template_to_conversations(self, data_rows):
         """
@@ -123,14 +128,22 @@ class FineTune:
         """
         if self.tokenizer is None:
             raise ValueError("Tokenizer must be loaded before formatting prompts.")
-        if not hasattr(self.tokenizer, 'apply_chat_template'):
+        if not hasattr(self.tokenizer, "apply_chat_template"):
             # TODO: What to do if tokenizer does not have apply_chat_template method?
-            raise NotImplementedError("Tokenizer does not have 'apply_chat_template' method. Adding a template manually is not supported yet.")
+            raise NotImplementedError(
+                "Tokenizer does not have 'apply_chat_template' method. Adding a template manually is not supported yet."
+            )
         convos = data_rows[self.CONVERSATIONS_KEY]
-        texts = [self.tokenizer.apply_chat_template(convo, tokenize = False, add_generation_prompt = False) for convo in convos]
+        texts = [
+            self.tokenizer.apply_chat_template(
+                convo, tokenize=False, add_generation_prompt=False
+            )
+            for convo in convos
+        ]
         # NOTE:No need for generation prompt when training
-        return { self.TEXTS_KEY : texts, }
-    
+        return {
+            self.TEXTS_KEY: texts,
+        }
 
     def handle_wandb_setup(self):
         """
@@ -138,13 +151,16 @@ class FineTune:
         Returns:
             str: The run name used for the Weights & Biases run.
         """
-        wandb.login(key=os.getenv('WANDB_TOKEN'))
-        
+        wandb.login(key=os.getenv("WANDB_TOKEN"))
+
         wandb_run_name = self.run_name
         wandb.init(project=self.config.wandb_project_name, name=wandb_run_name)
 
-
-    def get_columns_to_remove(self, dataset: Dataset | DatasetDict | IterableDatasetDict | IterableDataset, dataset_id: str) -> list[str]:
+    def get_columns_to_remove(
+        self,
+        dataset: Dataset | DatasetDict | IterableDatasetDict | IterableDataset,
+        dataset_id: str,
+    ) -> list[str]:
         """
         Get the columns to remove from the dataset based on the configuration.
         Args:
@@ -153,15 +169,21 @@ class FineTune:
             list[str]: The list of columns to remove.
         """
         if isinstance(dataset, IterableDatasetDict):
-            raise NotImplementedError(f"Cannot determine columns for IterableDatasetDict of {dataset_id}. Iterable datasets are not supported yet.")
+            raise NotImplementedError(
+                f"Cannot determine columns for IterableDatasetDict of {dataset_id}. Iterable datasets are not supported yet."
+            )
         dataset_columns = dataset.column_names
         if dataset_columns is None:
-            raise ValueError(f"Dataset {dataset_id} does not have column names. Ensure the dataset is properly loaded.")
-        
+            raise ValueError(
+                f"Dataset {dataset_id} does not have column names. Ensure the dataset is properly loaded."
+            )
+
         columns_to_keep = {self.config.question_column, self.config.ground_truth_column}
-        if (self.config.system_prompt_column is not None) and (self.config.system_prompt_override_text is None):
+        if (self.config.system_prompt_column is not None) and (
+            self.config.system_prompt_override_text is None
+        ):
             columns_to_keep.add(self.config.system_prompt_column)
-        
+
         return [col for col in dataset_columns if col not in columns_to_keep]
 
     def run(self):
@@ -172,11 +194,13 @@ class FineTune:
         """
         # Login to HF
         login_huggingface()
-        
+
         # Load training and validation data
         training_dataset = load_huggingface_dataset(self.config.training_data_id)
         if self.config.validation_data_id is not None:
-            validation_dataset = load_huggingface_dataset(self.config.validation_data_id)
+            validation_dataset = load_huggingface_dataset(
+                self.config.validation_data_id
+            )
         else:
             validation_dataset = None
 
@@ -187,73 +211,89 @@ class FineTune:
         # Data operations
         # strip doesnt work with batched=True, so we use batched=False
         training_dataset = training_dataset.map(
-            self.convert_a_data_row_to_conversation_format, 
-            remove_columns=self.get_columns_to_remove(training_dataset, self.config.training_data_id), 
-            batched=False
-        )   
-        training_dataset = training_dataset.map(self.apply_chat_template_to_conversations, batched=True)
-        if validation_dataset is not None and self.config.validation_data_id is not None:
+            self.convert_a_data_row_to_conversation_format,
+            remove_columns=self.get_columns_to_remove(
+                training_dataset, self.config.training_data_id
+            ),
+            batched=False,
+        )
+        training_dataset = training_dataset.map(
+            self.apply_chat_template_to_conversations, batched=True
+        )
+        if (
+            validation_dataset is not None
+            and self.config.validation_data_id is not None
+        ):
             validation_dataset = validation_dataset.map(
-                self.convert_a_data_row_to_conversation_format, 
-                remove_columns=self.get_columns_to_remove(validation_dataset, self.config.validation_data_id), 
-                batched=False
-            )   
-            validation_dataset = validation_dataset.map(self.apply_chat_template_to_conversations, batched=True)
+                self.convert_a_data_row_to_conversation_format,
+                remove_columns=self.get_columns_to_remove(
+                    validation_dataset, self.config.validation_data_id
+                ),
+                batched=False,
+            )
+            validation_dataset = validation_dataset.map(
+                self.apply_chat_template_to_conversations, batched=True
+            )
 
         self.run_name = setup_run_name(
-            name = self.config.run_name,
-            prefix = self.config.run_name_prefix,
-            suffix = self.config.run_name_suffix
+            name=self.config.run_name,
+            prefix=self.config.run_name_prefix,
+            suffix=self.config.run_name_suffix,
         )
         self.handle_wandb_setup()
 
         # Training
         trainer = SFTTrainer(
-            model = self.model,
-            tokenizer = self.tokenizer, # type: ignore
-            train_dataset = training_dataset,
-            eval_dataset = validation_dataset,
-            dataset_text_field = self.TEXTS_KEY,    # type: ignore
-            max_seq_length = self.config.max_sequence_length,    # type: ignore
-            data_collator = DataCollatorForSeq2Seq(tokenizer = self.tokenizer),
-            dataset_num_proc = self.config.dataset_num_proc,     # type: ignore
-            packing = self.config.packing,   # type: ignore
-            args = TrainingArguments(
-                per_device_train_batch_size = self.config.device_train_batch_size,
-                per_device_eval_batch_size= self.config.device_validation_batch_size,
-                gradient_accumulation_steps = self.config.grad_accumulation,
-                warmup_steps = self.config.warmup_steps,
-                num_train_epochs = self.config.epochs,
-                learning_rate = self.config.learning_rate,
-                fp16 = not is_bfloat16_supported(),
-                bf16 = is_bfloat16_supported(),
-                logging_steps = self.config.log_steps,
+            model=self.model,
+            tokenizer=self.tokenizer,  # type: ignore
+            train_dataset=training_dataset,
+            eval_dataset=validation_dataset,
+            dataset_text_field=self.TEXTS_KEY,  # type: ignore
+            max_seq_length=self.config.max_sequence_length,  # type: ignore
+            data_collator=DataCollatorForSeq2Seq(tokenizer=self.tokenizer),
+            dataset_num_proc=self.config.dataset_num_proc,  # type: ignore
+            packing=self.config.packing,  # type: ignore
+            args=TrainingArguments(
+                per_device_train_batch_size=self.config.device_train_batch_size,
+                per_device_eval_batch_size=self.config.device_validation_batch_size,
+                gradient_accumulation_steps=self.config.grad_accumulation,
+                warmup_steps=self.config.warmup_steps,
+                num_train_epochs=self.config.epochs,
+                learning_rate=self.config.learning_rate,
+                fp16=not is_bfloat16_supported(),
+                bf16=is_bfloat16_supported(),
+                logging_steps=self.config.log_steps,
                 logging_first_step=self.config.log_first_step,
-                optim = self.config.optimizer,
-                weight_decay = self.config.weight_decay,
-                lr_scheduler_type = self.config.lr_scheduler_type,
-                seed = self.config.seed,
-                output_dir = self.config.model_local_output_dir,  # Save checkpoints and outputs to local models dir
-                report_to = self.config.report_to,
+                optim=self.config.optimizer,
+                weight_decay=self.config.weight_decay,
+                lr_scheduler_type=self.config.lr_scheduler_type,
+                seed=self.config.seed,
+                output_dir=self.config.model_local_output_dir,  # Save checkpoints and outputs to local models dir
+                report_to=self.config.report_to,
                 save_steps=self.config.save_steps,
                 save_total_limit=self.config.save_total_limit,
                 push_to_hub=self.config.push_to_hub,
-                hub_model_id=self.run_name
+                hub_model_id=self.run_name,
             ),
-            callbacks = [None]
+            callbacks=[None],
         )
 
         if self.config.train_on_responses_only:
             trainer = train_on_responses_only(
                 trainer,
-                instruction_part = self.config.question_part,
-                response_part = self.config.answer_part,
+                instruction_part=self.config.question_part,
+                response_part=self.config.answer_part,
             )
 
         trainer_stats = trainer.train()
+        print(f"\n\nTraining completed with stats: {trainer_stats}")
+        print(
+            f"Model and tokenizer saved to {self.config.model_local_output_dir} locally and to Hugging Face Hub with ID: {self.run_name}"
+        )
+        print("--- Fine-tuning completed successfully. ---")
         return trainer_stats
+
 
 if __name__ == "__main__":
     print("[ERROR] Please run the pipeline using main.py, not directly")
     sys.exit(1)
-
