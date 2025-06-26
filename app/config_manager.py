@@ -7,70 +7,85 @@ from dataclasses import dataclass
 
 class ConfigManager:
     """Centralized configuration manager for the pipeline."""
-    
+
     def __init__(self, config_path: str = "config.toml"):
         self.config_path = Path(config_path)
         self._config = None
         self.load_config()
-    
+
     def load_config(self) -> None:
         """Load configuration from TOML file."""
         if not self.config_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
-        
-        with open(self.config_path, 'r') as f:
+
+        with open(self.config_path, "r") as f:
             self._config = toml.load(f)
-        
+
         # Replace environment variable placeholders
         self._resolve_env_vars(self._config)
-    
+
     def _resolve_env_vars(self, config: Dict[str, Any]) -> None:
         """Recursively resolve environment variables in config values."""
         for key, value in config.items():
             if isinstance(value, dict):
                 self._resolve_env_vars(value)
-            elif isinstance(value, str) and value.startswith("${") and value.endswith("}"):
+            elif (
+                isinstance(value, str)
+                and value.startswith("${")
+                and value.endswith("}")
+            ):
                 env_var = value[2:-1]
                 config[key] = os.getenv(env_var, value)
-    
+
     def get_section(self, section: str) -> Dict[str, Any]:
         """Get a specific configuration section."""
         if self._config is None:
             raise RuntimeError("Configuration not loaded")
-        
+
         if section not in self._config:
             raise KeyError(f"Configuration section '{section}' not found")
-        
-        return self._config[section].copy() # to avoid direct modification
-    
+
+        return self._config[section].copy()  # to avoid direct modification
+
     def get_value(self, section: str, key: str, default: Any = None) -> Any:
         """Get a specific configuration value."""
         section_config = self.get_section(section)
         return section_config.get(key, default)
-    
+
     def validate_section(self, section: str, required_keys: list) -> None:
         """Validate that a section contains all required keys."""
         section_config = self.get_section(section)
         missing_keys = [key for key in required_keys if key not in section_config]
-        
+
         if missing_keys:
-            raise ValueError(f"Missing required configuration keys in '{section}': {missing_keys}")
-    
+            raise ValueError(
+                f"Missing required configuration keys in '{section}': {missing_keys}"
+            )
+
     def validate_dataclass_config(self, section: str, dataclass_type) -> None:
         """Validate that a section contains all fields required by a dataclass."""
         from dataclasses import fields
-        
+
         section_config = self.get_section(section)
         required_fields = [field.name for field in fields(dataclass_type)]
-        missing_keys = [field for field in required_fields if field not in section_config]
-        
+        missing_keys = [
+            field for field in required_fields if field not in section_config
+        ]
+
         if missing_keys:
-            raise ValueError(f"Missing required configuration keys in '{section}' for {dataclass_type.__name__}: {missing_keys}")
-        
+            raise ValueError(
+                f"Missing required configuration keys in '{section}' for {dataclass_type.__name__}: {missing_keys}"
+            )
+
         # Optional: Check for extra keys that don't belong to the dataclass
-        extra_keys = [key for key in section_config.keys() if key not in required_fields]
+        extra_keys = [
+            key for key in section_config.keys() if key not in required_fields
+        ]
         if extra_keys:
-            print(f"Warning: Extra configuration keys in '{section}' not used by {dataclass_type.__name__}: {extra_keys}")
+            print(
+                f"Warning: Extra configuration keys in '{section}' not used by {dataclass_type.__name__}: {extra_keys}"
+            )
+
 
 # Dataclass approach for type safety
 @dataclass
@@ -88,15 +103,15 @@ class FineTunerConfig:
     lora_dropout: int
     target_modules: list
     bias: str
-    training_data_id: str # Hugging Face dataset ID or local path
+    training_data_id: str  # Hugging Face dataset ID or local path
     validation_data_id: str | None  # Optional, can be None
-    dataset_num_proc: int # Number of processes for dataset loading
-    question_column: str  
-    ground_truth_column: str  
+    dataset_num_proc: int  # Number of processes for dataset loading
+    question_column: str
+    ground_truth_column: str
     system_prompt_column: str | None  # Optional, can be None
     system_prompt_override_text: str | None  # Optional, can be None
-    run_name: str | None # Leave empty for random name
-    run_name_prefix: str 
+    run_name: str | None  # Leave empty for random name
+    run_name_prefix: str
     run_name_suffix: str
     wandb_project_name: str
     device_train_batch_size: int
@@ -107,17 +122,19 @@ class FineTunerConfig:
     warmup_steps: int
     optimizer: str  # TODO: Need constraints here
     weight_decay: float
-    lr_scheduler_type: str # Need constraints here
-    seed: int   # Random seed for reproducibility
-    log_steps: int # Log every n steps
+    lr_scheduler_type: str  # Need constraints here
+    seed: int  # Random seed for reproducibility
+    log_steps: int  # Log every n steps
     log_first_step: bool
-    save_steps: int # Save every n steps
-    save_total_limit: int   # Limit the number of saved checkpoints
-    push_to_hub: bool       # Push the model to Hugging Face Hub
+    save_steps: int  # Save every n steps
+    save_total_limit: int  # Limit the number of saved checkpoints
+    push_to_hub: bool  # Push the model to Hugging Face Hub
     report_to: str  # Reporting tool, e.g., "wandb", "tensorboard", "none"
     model_local_output_dir: str  # Local directory to save the model and checkpoints
-    packing: bool   # Can make 5x training faster, for shorter sequences
-    use_gradient_checkpointing: str | bool # Can be True, False, or 'unsloth' - for very large contexts
+    packing: bool  # Can make 5x training faster, for shorter sequences
+    use_gradient_checkpointing: (
+        str | bool
+    )  # Can be True, False, or 'unsloth' - for very large contexts
     use_flash_attention: bool
     use_rslora: bool
     loftq_config: Any  # Can be null
@@ -147,11 +164,11 @@ class InferencerConfig:
     use_cache: bool
     temperature: float
     min_p: float
-    hf_user_id: str # TODO: Should this be a secret? This will be used to generate the model path
+    hf_user_id: str  # TODO: Should this be a secret? This will be used to generate the model path
     run_name: str | None  # Leave empty for random name
     run_name_prefix: str
     run_name_suffix: str
-    
+
     @classmethod
     def from_config(cls, config_manager: ConfigManager):
         config_manager.validate_dataclass_config("inferencer", cls)
@@ -164,15 +181,17 @@ class EvaluatorConfig:
     metrics: list[str]
     llm_model_id: str
     embedding_model_id: str | None  # Optional, can be None
-    
+
     @classmethod
     def from_config(cls, config_manager: ConfigManager):
         config_manager.validate_dataclass_config("evaluator", cls)
         section = config_manager.get_section("evaluator")
         return cls(**section)
 
+
 # Global config instance (singleton pattern)
 _config_manager = None
+
 
 def get_config_manager(config_path: str = "config.toml") -> ConfigManager:
     """Get the global configuration manager instance."""
