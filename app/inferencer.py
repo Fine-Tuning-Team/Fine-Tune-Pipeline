@@ -1,25 +1,30 @@
-import unsloth # type: ignore
-from unsloth import FastLanguageModel # type: ignore
+import unsloth  # type: ignore
+from unsloth import FastLanguageModel  # type: ignore
 
-import csv
-import glob
 import json
 import os
 import sys
-from enum import Enum
-from huggingface_hub import HfApi
-import pandas as pd
+from huggingface_hub import HfApi, Repository
 from tqdm import tqdm
 
 from app.config_manager import get_config_manager, InferencerConfig
+from app.utils import load_huggingface_dataset, setup_run_name
+
 
 class Inferencer:
     def __init__(self, *, config_manager=get_config_manager()):
         self.config = InferencerConfig.from_config(config_manager)
 
+        # TODO: Load the model name from the previous finetuner step trained model iD
+        self.model_id = "LOAD THE MODEL NAME HERE"
         self.model = None
         self.tokenizer = None
-        
+
+        # NOTE: IF CHANGED, UPDATE THE **EVALUATOR** AS WELL
+        self.OUTPUT_SYSTEM_PROMPT_COLUMN = "system_prompt"
+        self.OUTPUT_USER_PROMPT_COLUMN = "user_prompt"
+        self.OUTPUT_ASSISTANT_RESPONSE_COLUMN = "assistant_response"
+        self.OUTPUT_FILE_NAME = "inferencer_output.jsonl"
 
     def get_system_prompt(self, data_row):
         """
@@ -28,12 +33,12 @@ class Inferencer:
         if self.config.system_prompt_override_text is not None:
             system_part = self.config.system_prompt_override_text.strip()
         elif self.config.system_prompt_column is not None:
-            system_part =  data_row[self.config.system_prompt_column].strip()
+            system_part = data_row[self.config.system_prompt_column].strip()
         else:
             system_part = None
         return system_part
-    
-    # TODO: Can we do this as a batch like we do in training? 
+
+    # TODO: Can we do this as a batch like we do in training?
     def convert_a_data_row_to_conversation_format(self, data_row):
         """
         Convert a single data_row to a conversation format.
@@ -44,168 +49,151 @@ class Inferencer:
         if system_part is not None:
             conversation.insert(0, {"role": "system", "content": system_part})
         return conversation
-    
+
     def apply_chat_template_to_conversation(self, conversation):
-        """ Apply the chat template to a conversation.
+        """Apply the chat template to a conversation.
         This method tokenizes the conversation and prepares it for model input.
         """
-        if self.tokenizer is None or self.current_model is None:
-            raise ValueError("Model or tokenizer is not initialized. Please load the model and tokenizer first.")    
-        tokenized_msg = self.tokenizer.apply_chat_template(conversation, add_generation_prompt=True, tokenize=True, return_tensors="pt").to(self.current_model.device)
+        if self.tokenizer is None or self.model is None:
+            raise ValueError(
+                "Model or tokenizer is not initialized. Please load the model and tokenizer first."
+            )
+        tokenized_msg = self.tokenizer.apply_chat_template(
+            conversation, add_generation_prompt=True, tokenize=True, return_tensors="pt"
+        ).to(self.model.device)
         return tokenized_msg
-    
 
-    def generate_responses(self, data):
+    def generate_a_response(self, data_row):
+        """
+        Generate a response for a single data_row.
+        This method converts the data_row to conversation format, tokenizes it,
+        and generates a response using the model.
+
+        Args:
+            data_row (dict): A single row of data containing user prompt and optional system prompt.
+        Returns:
+            dict: A dictionary containing the system prompt, user prompt, and model response.
+        Example:
+            data_row = {
+                "system_prompt": "You are a helpful assistant.",
+                "question": "What is the capital of France?",
+                "assistant": "Paris"
+            }
+            response = inferencer.generate_a_response(data_row)
+            print(response)
+        """
+        if self.model is None or self.tokenizer is None:
+            raise ValueError(
+                "Model or tokenizer is not initialized. Please load the model and tokenizer first."
+            )
+
+        conversation = self.convert_a_data_row_to_conversation_format(data_row)
+        tokenized_msg = self.apply_chat_template_to_conversation(conversation)
+
+        output_ids = self.model.generate(
+            input_ids=tokenized_msg,
+            max_new_tokens=self.config.max_new_tokens,
+            use_cache=self.config.use_cache,
+            temperature=self.config.temperature,
+            min_p=self.config.min_p,
+        )
+        model_response = self.tokenizer.decode(
+            output_ids[0][tokenized_msg.shape[-1] :], skip_special_tokens=True
+        )
+        # output_ids[0][tokenized_msg.shape[-1]:] --> output_ids[0] is the generated response, and we skip the user and system parts by slicing from the end of the tokenized message.
+        output_data_row = {
+            self.OUTPUT_SYSTEM_PROMPT_COLUMN: self.get_system_prompt(data_row),
+            self.OUTPUT_USER_PROMPT_COLUMN: data_row[self.config.question_column],
+            self.OUTPUT_ASSISTANT_RESPONSE_COLUMN: model_response,
+        }
+        return output_data_row
+
+    def save_datarow_to_jsonl(self, file_name, data_row):
+        """
+        Save a single data_row to a JSONL file. If the file does not exist, it creates the file.
+        If the file exists, it appends the data_row to the file.
+
+        Args:
+            file_name (str): The name of the JSONL file.
+            data_row (dict): The data row to save.
+        """
+        mode = "a" if os.path.exists(file_name) else "w"
+        with open(file_name, mode, encoding="utf-8") as f:
+            f.write(json.dumps(data_row, ensure_ascii=False) + "\n")
+
+    def push_dataset_to_huggingface(
+        self, repo_id, dataset_path, hf_token=os.getenv("HF_TOKEN")
+    ):
+        """
+        Push a dataset to HuggingFace Hub. If the dataset already exists, update it with a new commit.
+
+        Args:
+            dataset_path (str): Path to the dataset folder or file.
+            repo_id (str): The repository ID on HuggingFace Hub (e.g., 'username/repo_name').
+            hf_token (str): HuggingFace authentication token.
+        """
+        if not hf_token:
+            raise ValueError(
+                "HuggingFace token is not set. Please set the HF_TOKEN environment variable."
+            )
+
+        # Initialize the HuggingFace API
+        api = HfApi(token=hf_token)
+
+        # Check if the repository exists
+        try:
+            api.create_repo(repo_id=repo_id, repo_type="dataset", exist_ok=True)
+        except Exception as e:
+            raise e
+
+        # Push the dataset to the repository
+        try:
+            repo = Repository(
+                local_dir=dataset_path, clone_from=repo_id, token=hf_token
+            )
+            repo.git_pull()  # Pull the latest changes
+            repo.push_to_hub(commit_message="Update dataset with new data")
+        except Exception as e:
+            raise e
+
+    def run(self):
         """
         Generate responses for each user prompt in the dataset and return as a list of dicts.
         """
-        if self.current_model is None or self.tokenizer is None:
-            raise ValueError("Model or tokenizer is not initialized. Please load the model and tokenizer first.")
-        self.logger.info("Generating responses for user prompts in the dataset...")
-        results = []
-        for example in tqdm(data, desc='Generating responses', unit='row'):
-            tokenized_msg = self._get_messages(example)
-            output_ids = self.current_model.generate(
-                input_ids=tokenized_msg,
-                max_new_tokens=self.max_new_tokens,
-                use_cache=self.use_cache,
-                temperature=self.temperature,
-                min_p=self.min_p
-            )
-            output_text = self.tokenizer.decode(
-                output_ids[0][tokenized_msg.shape[-1]:], skip_special_tokens=True
-            )
-            row = {
-                self.output_system_column: self._get_system_prompt(example),
-                self.output_user_column: example[self.user_column],
-                self.output_assistant_column: output_text
-            }
-            results.append(row)
-        return results
-    
+        # Load the dataset
+        testing_dataset = load_huggingface_dataset(self.config.testing_data_id)
 
-    def store_base_results(self, results):
-        """
-        Store results for the base model in the specified output directory.
-        """
-        self.output_path = os.path.join(self.other_results_dir, self.base_model_results_file)
-        self._store_results(results, self.output_path)
-
-
-    def store_fine_tuned_results(self, results):
-        """
-        Store results for the fine-tuned model in the specified output directory.
-        """
-        self.output_path = os.path.join(self.model_results_dir, self.fine_tuned_model_results_file)
-        self._store_results(results, self.output_path)
-
-
-    def _store_results(self, results, file_path):
-        """
-        Store results locally in the specified format (csv or jsonl).
-        """
-        if file_path.endswith('.csv'):
-            with open(file_path, "w", encoding="utf-8", newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=[self.output_system_column, self.output_user_column, self.output_assistant_column])
-                writer.writeheader()
-                for row in results:
-                    writer.writerow(row)
-        elif file_path.endswith('.json') or file_path.endswith('.jsonl'):
-            with open(file_path, "w", encoding="utf-8") as f:
-                for row in results:
-                    f.write(json.dumps(row, ensure_ascii=False) + "\n")
-        else:
-            raise ValueError(f"Unsupported file format: {file_path}")
-        self.logger.info(f"Responses written to {self.output_path}.")
-
-    # def upload_to_huggingface(self):
-    #     """
-    #     Uploads the generated responses to HuggingFace Hub as a dataset.
-    #     The dataset name will be 'output_<model_id>'.
-    #     """
-    #     self.logger.info("Uploading output jsonl to HuggingFace Hub as a dataset...")
-    #     model_name_without_uid = self.model_name.split('/')[-1]
-    #     now_utc = datetime.now(pytz.utc)
-    #     now_colombo = now_utc.astimezone(pytz.timezone('Asia/Colombo'))
-    #     time_str = now_colombo.strftime('%Y-%b-%d_%H-%M-%S')
-    #     repo_id = f'{time_str}_outputof_{model_name_without_uid}'
-    
-    #     api = HfApi(token=os.getenv("HF_TOKEN"))
-    #     try:
-    #         api.create_repo(repo_id=repo_id, repo_type="dataset", exist_ok=True)
-    #         api.upload_folder(
-    #             folder_path=self.output_dir,
-    #             repo_id=f"{self.hf_user_id}/{repo_id}",
-    #             repo_type="dataset",
-    #             commit_message="Upload model output dataset",
-    #         )
-    #     except Exception as e:
-    #         self.logger.error(f"Failed to upload to HuggingFace Hub: {str(e)}")
-    #         raise e
-    #     self.logger.info(f"Output CSV uploaded to HuggingFace Hub as dataset: {repo_id}")
-
-
-    def load_local_dataset(self):
-        """
-        Load a dataset from a local folder (expects a single file in the folder).
-        """
-        files = glob.glob(os.path.join(self.test_dir, '*'))
-        if not files:
-            raise FileNotFoundError(f"No files found in {self.test_dir}")
-        file_path = files[0]
-        if file_path.endswith('.csv'):
-            df = pd.read_csv(file_path)
-        elif file_path.endswith('.json') or file_path.endswith('.jsonl'):
-            df = pd.read_json(file_path, lines=True)
-        else:
-            raise ValueError(f"Unsupported file format: {file_path}")
-        return df
-
-    def load_finetuned_model(self):
-        """
-        Load a fine-tuned model from a local directory using Unsloth.
-        """
-        self.current_model, self.tokenizer = FastLanguageModel.from_pretrained(
-            model_name=self.fine_tuned_model_id,
-            max_seq_length=self.max_seq_length,
-            dtype=self.dtype,
-            load_in_4bit=self.load_in_4bit,
-            token=os.getenv("HF_TOKEN")
+        # Load the model
+        self.model, self.tokenizer = FastLanguageModel.from_pretrained(
+            model_name=self.model_id,
+            max_seq_length=self.config.max_sequence_length,
+            dtype=self.config.dtype,
+            load_in_4bit=self.config.load_in_4bit,
+            token=os.getenv("HF_TOKEN"),
         )
-        FastLanguageModel.for_inference(self.current_model)
+        FastLanguageModel.for_inference(self.model)
 
-
-    def load_base_model(self):
-        """
-        Load the base model from HuggingFace or local directory.
-        """
-        self.current_model, self.tokenizer = FastLanguageModel.from_pretrained(
-            model_name=self.base_model_id,
-            max_seq_length=self.max_seq_length,
-            dtype=self.dtype,
-            load_in_4bit=self.load_in_4bit,
-            token=os.getenv("HF_TOKEN")
+        self.run_name = setup_run_name(
+            name=self.config.run_name,
+            prefix=self.config.run_name_prefix,
+            suffix=self.config.run_name_suffix,
         )
-        FastLanguageModel.for_inference(self.current_model)
 
+        # Model response generation
+        for data_row in tqdm(
+            testing_dataset, desc="Generating responses", unit="data_row"
+        ):
+            response = self.generate_a_response(data_row)
+            self.save_datarow_to_jsonl(self.OUTPUT_FILE_NAME, response)
+            self.push_dataset_to_huggingface(
+                repo_id=f"{self.config.hf_user_id}/{self.run_name}",
+                dataset_path=self.OUTPUT_FILE_NAME,
+            )
+        print(
+            f"Responses saved to {self.OUTPUT_FILE_NAME} and pushed to HuggingFace Hub under {self.config.hf_user_id}/{self.run_name}"
+        )
+        print("--- Inference completed successfully. ---")
 
-    def run_local_eval(self):
-        test_df = self.load_local_dataset()
-        # Load fine-tuned model
-        self.load_finetuned_model()
-        # Run fine-tuned model on test set
-        results = self.generate_responses(test_df)
-        # Store results in model-results
-        self.store_fine_tuned_results(results)
-
-        # Load base model
-        self.load_base_model()
-        # Run base model on test set
-        base_results = self.generate_responses(test_df)
-        # Store results in other-results
-        self.store_base_results(base_results)
-        
-        self.logger.info("Local evaluation complete. Results saved.")
 
 if __name__ == "__main__":
     print("[ERROR] Please run the pipeline using main.py, not modules/runner.py.")
