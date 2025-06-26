@@ -4,7 +4,6 @@ from unsloth import FastLanguageModel  # type: ignore
 import json
 import os
 import sys
-from huggingface_hub import HfApi, Repository
 from tqdm import tqdm
 
 from app.config_manager import get_config_manager, InferencerConfig
