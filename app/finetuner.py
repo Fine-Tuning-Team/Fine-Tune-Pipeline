@@ -19,7 +19,7 @@ from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 
 from app.config_manager import get_config_manager, FineTunerConfig
-
+from app.utils import load_huggingface_dataset
 
 class FineTune:
     def __init__(self, *, config_manager=get_config_manager()):
@@ -169,23 +169,6 @@ class FineTune:
         login(token=os.getenv("HF_TOKEN"))
 
 
-    def load_huggingface_dataset(self, dataset_id: str) -> (DatasetDict | Dataset | IterableDatasetDict | IterableDataset):
-        """
-        Load a dataset from Hugging Face. Whether the data is jsonl, csv, parquet or any other format, it will be loaded as a Hugging Face Dataset.
-        Args:
-            dataset_id (str): The ID of the dataset on Hugging Face.
-        Returns:
-            datasets.arrow_dataset.Dataset: The loaded dataset.
-        """
-        try:
-            dataset = datasets.load_dataset(dataset_id)
-            if isinstance(dataset, dict):
-                # If the dataset is a dictionary, return the first split
-                return list(dataset.values())[0]
-            return dataset
-        except Exception as e:
-            raise ValueError(f"Failed to load dataset from Hugging Face with ID '{dataset_id}': {e}")
-
     def get_columns_to_remove(self, dataset: Dataset | DatasetDict | IterableDatasetDict | IterableDataset, dataset_id: str) -> list[str]:
         """
         Get the columns to remove from the dataset based on the configuration.
@@ -213,9 +196,9 @@ class FineTune:
             TrainerStats: The statistics from the training process.
         """
         # Load training and validation data
-        training_dataset = self.load_huggingface_dataset(self.config.training_data_id)
+        training_dataset = load_huggingface_dataset(self.config.training_data_id)
         if self.config.validation_data_id is not None:
-            validation_dataset = self.load_huggingface_dataset(self.config.validation_data_id)
+            validation_dataset = load_huggingface_dataset(self.config.validation_data_id)
         else:
             validation_dataset = None
 
