@@ -2,6 +2,7 @@ from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
 import datasets
 import pandas as pd
 import os
+import time
 
 # DEPRECATED: Will be removed in future versions
 def _load_local_dataset(self, data_dir):
@@ -42,3 +43,18 @@ def load_huggingface_dataset(dataset_id: str) -> (DatasetDict | Dataset | Iterab
             return dataset
         except Exception as e:
             raise ValueError(f"Failed to load dataset from Hugging Face with ID '{dataset_id}': {e}")
+        
+def setup_run_name(*, name: str | None, prefix: str = "", suffix: str = "") -> str:
+    """
+    Set up the run name for the training process.
+    The run name is constructed from the base model ID, project name, and optional prefixes/suffixes.
+    """
+    # TODO: Pull the run name from the MLFLow
+    if name is None:
+        run_name = str(int(time.time()))   # in seconds since epoch
+    else:
+        if any(char in name for char in "$#@&*!"):  # NOTE: Make this regex if getting more complex
+            raise ValueError("Run name contains invalid special characters: $, #, @, &, *, !")
+        run_name = name.strip()
+    run_name = prefix + run_name + suffix
+    return run_name

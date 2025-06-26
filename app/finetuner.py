@@ -19,7 +19,7 @@ from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 
 from app.config_manager import get_config_manager, FineTunerConfig
-from app.utils import load_huggingface_dataset
+from app.utils import load_huggingface_dataset, setup_run_name
 
 class FineTune:
     def __init__(self, *, config_manager=get_config_manager()):
@@ -135,18 +135,6 @@ class FineTune:
         # NOTE:No need for generation prompt when training
         return { self.TEXTS_KEY : texts, }
     
-    def setup_run_name(self):
-        """
-        Set up the run name for the training process.
-        The run name is constructed from the base model ID, project name, and optional prefixes/suffixes.
-        """
-        # TODO: Pull the run name from the MLFLow
-        if self.config.run_name is None:
-            self.run_name = str(int(time.time()))   # in seconds since epoch
-        else:
-            self.run_name = self.config.run_name.strip()
-        self.run_name = self.config.run_name_prefix + self.run_name + self.config.run_name_suffix # type: ignore
-
 
     def handle_wandb_setup(self):
         """
@@ -222,6 +210,11 @@ class FineTune:
             )   
             validation_dataset = validation_dataset.map(self.apply_chat_template_to_conversations, batched=True)
 
+        self.run_name = setup_run_name(
+            name = self.config.run_name,
+            prefix = self.config.run_name_prefix,
+            suffix = self.config.run_name_suffix
+        )
         self.handle_wandb_setup()
 
         # Training
