@@ -25,7 +25,7 @@ class FineTune:
     def __init__(self, *, config_manager=get_config_manager(), FineTunerConfig=FineTunerConfig):
         # Load configuration
         self.config = FineTunerConfig.from_config(config_manager)
-        
+
         # Constants
         self.CONVERSATIONS_KEY = "conversations"  # Key for conversations when transforming dataset (refer to _convert_to_conversations method)
         self.TEXTS_KEY = "text"  # Key for text when formatting prompts (refer to _formatting_prompts_func method)
@@ -140,8 +140,11 @@ class FineTune:
         Set up the run name for the training process.
         The run name is constructed from the base model ID, project name, and optional prefixes/suffixes.
         """
+
         if self.config.run_name is None:
             self.run_name = str(int(time.time()))   # in seconds since epoch
+        else:
+            self.run_name = self.config.run_name.strip()
         self.run_name = self.config.run_name_prefix + self.run_name + self.config.run_name_suffix # type: ignore
 
 
