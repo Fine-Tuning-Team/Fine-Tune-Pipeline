@@ -3,15 +3,11 @@ from unsloth import FastLanguageModel, is_bfloat16_supported # type: ignore
 from unsloth.chat_templates import get_chat_template, train_on_responses_only # type: ignore
 
 # import torch
-import datasets
 import os
 import sys
 import wandb
-import pandas as pd
-import time
 
 from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
-from huggingface_hub import login
 from trl import SFTTrainer
 from transformers.training_args import TrainingArguments
 from transformers.data.data_collator import DataCollatorForSeq2Seq
@@ -19,7 +15,7 @@ from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 
 from app.config_manager import get_config_manager, FineTunerConfig
-from app.utils import load_huggingface_dataset, setup_run_name
+from app.utils import load_huggingface_dataset, login_huggingface, setup_run_name
 
 class FineTune:
     def __init__(self, *, config_manager=get_config_manager()):
@@ -148,15 +144,6 @@ class FineTune:
         wandb.init(project=self.config.wandb_project_name, name=wandb_run_name)
 
 
-    def login_huggingface(self):
-        """
-        Log in to Hugging Face using the token from environment variables.
-        Raises:
-            ValueError: If the Hugging Face token is not set in the environment variables.
-        """
-        login(token=os.getenv("HF_TOKEN"))
-
-
     def get_columns_to_remove(self, dataset: Dataset | DatasetDict | IterableDatasetDict | IterableDataset, dataset_id: str) -> list[str]:
         """
         Get the columns to remove from the dataset based on the configuration.
@@ -183,6 +170,9 @@ class FineTune:
         Returns:
             TrainerStats: The statistics from the training process.
         """
+        # Login to HF
+        login_huggingface()
+        
         # Load training and validation data
         training_dataset = load_huggingface_dataset(self.config.training_data_id)
         if self.config.validation_data_id is not None:

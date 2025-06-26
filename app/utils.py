@@ -3,6 +3,7 @@ import datasets
 import pandas as pd
 import os
 import time
+from huggingface_hub import login
 
 # DEPRECATED: Will be removed in future versions
 def _load_local_dataset(self, data_dir):
@@ -58,3 +59,11 @@ def setup_run_name(*, name: str | None, prefix: str = "", suffix: str = "") -> s
         run_name = name.strip()
     run_name = prefix + run_name + suffix
     return run_name
+
+def login_huggingface():
+    """
+    Log in to Hugging Face using the token from environment variables.
+    Raises:
+        ValueError: If the Hugging Face token is not set in the environment variables.
+    """
+    login(token=os.getenv("HF_TOKEN"))
