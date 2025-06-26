@@ -22,7 +22,7 @@ from app.config_manager import get_config_manager, FineTunerConfig
 
 
 class FineTune:
-    def __init__(self, *, config_manager=get_config_manager(), FineTunerConfig=FineTunerConfig):
+    def __init__(self, *, config_manager=get_config_manager()):
         # Load configuration
         self.config = FineTunerConfig.from_config(config_manager)
 
@@ -74,7 +74,7 @@ class FineTune:
             loftq_config = self.config.loftq_config,
         )
 
-    def convert_to_conversations(self, data_row) -> dict:
+    def convert_a_data_row_to_conversation_format(self, data_row) -> dict:
         """
         Convert a single data_row to a conversation format.
         Args:
@@ -109,7 +109,7 @@ class FineTune:
         return output
 
 
-    def formatting_prompts_func(self, data_rows):
+    def apply_chat_template_to_conversations(self, data_rows):
         """
         Format the conversations for training by applying the chat template.
         Args:
@@ -140,7 +140,7 @@ class FineTune:
         Set up the run name for the training process.
         The run name is constructed from the base model ID, project name, and optional prefixes/suffixes.
         """
-
+        # TODO: Pull the run name from the MLFLow
         if self.config.run_name is None:
             self.run_name = str(int(time.time()))   # in seconds since epoch
         else:
@@ -226,18 +226,18 @@ class FineTune:
         # Data operations
         # strip doesnt work with batched=True, so we use batched=False
         training_dataset = training_dataset.map(
-            self.convert_to_conversations, 
+            self.convert_a_data_row_to_conversation_format, 
             remove_columns=self.get_columns_to_remove(training_dataset, self.config.training_data_id), 
             batched=False
         )   
-        training_dataset = training_dataset.map(self.formatting_prompts_func, batched=True)
+        training_dataset = training_dataset.map(self.apply_chat_template_to_conversations, batched=True)
         if validation_dataset is not None and self.config.validation_data_id is not None:
             validation_dataset = validation_dataset.map(
-                self.convert_to_conversations, 
+                self.convert_a_data_row_to_conversation_format, 
                 remove_columns=self.get_columns_to_remove(validation_dataset, self.config.validation_data_id), 
                 batched=False
             )   
-            validation_dataset = validation_dataset.map(self.formatting_prompts_func, batched=True)
+            validation_dataset = validation_dataset.map(self.apply_chat_template_to_conversations, batched=True)
 
         self.handle_wandb_setup()
 
