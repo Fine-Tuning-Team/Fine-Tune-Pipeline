@@ -8,7 +8,11 @@ from huggingface_hub import HfApi, Repository
 from tqdm import tqdm
 
 from app.config_manager import get_config_manager, InferencerConfig
-from app.utils import load_huggingface_dataset, setup_run_name
+from app.utils import (
+    load_huggingface_dataset,
+    push_dataset_to_huggingface,
+    setup_run_name,
+)
 
 
 class Inferencer:
@@ -121,41 +125,6 @@ class Inferencer:
         with open(file_name, mode, encoding="utf-8") as f:
             f.write(json.dumps(data_row, ensure_ascii=False) + "\n")
 
-    def push_dataset_to_huggingface(
-        self, repo_id, dataset_path, hf_token=os.getenv("HF_TOKEN")
-    ):
-        """
-        Push a dataset to HuggingFace Hub. If the dataset already exists, update it with a new commit.
-
-        Args:
-            dataset_path (str): Path to the dataset folder or file.
-            repo_id (str): The repository ID on HuggingFace Hub (e.g., 'username/repo_name').
-            hf_token (str): HuggingFace authentication token.
-        """
-        if not hf_token:
-            raise ValueError(
-                "HuggingFace token is not set. Please set the HF_TOKEN environment variable."
-            )
-
-        # Initialize the HuggingFace API
-        api = HfApi(token=hf_token)
-
-        # Check if the repository exists
-        try:
-            api.create_repo(repo_id=repo_id, repo_type="dataset", exist_ok=True)
-        except Exception as e:
-            raise e
-
-        # Push the dataset to the repository
-        try:
-            repo = Repository(
-                local_dir=dataset_path, clone_from=repo_id, token=hf_token
-            )
-            repo.git_pull()  # Pull the latest changes
-            repo.push_to_hub(commit_message="Update dataset with new data")
-        except Exception as e:
-            raise e
-
     def run(self):
         """
         Generate responses for each user prompt in the dataset and return as a list of dicts.
@@ -185,7 +154,7 @@ class Inferencer:
         ):
             response = self.generate_a_response(data_row)
             self.save_datarow_to_jsonl(self.OUTPUT_FILE_NAME, response)
-            self.push_dataset_to_huggingface(
+            push_dataset_to_huggingface(
                 repo_id=f"{self.config.hf_user_id}/{self.run_name}",
                 dataset_path=self.OUTPUT_FILE_NAME,
             )

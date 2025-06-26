@@ -3,7 +3,7 @@ import datasets
 import pandas as pd
 import os
 import time
-from huggingface_hub import login
+from huggingface_hub import HfApi, Repository, login
 
 
 # DEPRECATED: Will be removed in future versions
@@ -81,3 +81,37 @@ def login_huggingface():
         ValueError: If the Hugging Face token is not set in the environment variables.
     """
     login(token=os.getenv("HF_TOKEN"))
+
+
+def push_dataset_to_huggingface(
+    repo_id: str, dataset_path: str, hf_token: str | None = os.getenv("HF_TOKEN")
+):
+    """
+    Push a dataset to HuggingFace Hub. If the dataset already exists, update it with a new commit.
+
+    Args:
+        dataset_path (str): Path to the dataset folder or file.
+        repo_id (str): The repository ID on HuggingFace Hub (e.g., 'username/repo_name').
+        hf_token (str): HuggingFace authentication token.
+    """
+    if not hf_token:
+        raise ValueError(
+            "HuggingFace token is not set. Please set the HF_TOKEN environment variable."
+        )
+
+    # Initialize the HuggingFace API
+    api = HfApi(token=hf_token)
+
+    # Check if the repository exists
+    try:
+        api.create_repo(repo_id=repo_id, repo_type="dataset", exist_ok=True)
+    except Exception as e:
+        raise e
+
+    # Push the dataset to the repository
+    try:
+        repo = Repository(local_dir=dataset_path, clone_from=repo_id, token=hf_token)
+        repo.git_pull()  # Pull the latest changes
+        repo.push_to_hub(commit_message="Update dataset with new data")
+    except Exception as e:
+        raise e
