@@ -138,7 +138,7 @@ class InferencerConfig:
     dtype: Any
     load_in_4bit: bool
     load_in_8bit: bool
-    training_data_id: str
+    testing_data_id: str
     question_column: str
     ground_truth_column: str
     system_prompt_column: str | None  # Optional, can be None
@@ -148,6 +148,9 @@ class InferencerConfig:
     temperature: float
     min_p: float
     hf_user_id: str # TODO: Should this be a secret? This will be used to generate the model path
+    run_name: str | None  # Leave empty for random name
+    run_name_prefix: str
+    run_name_suffix: str
     
     @classmethod
     def from_config(cls, config_manager: ConfigManager):

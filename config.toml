@@ -52,7 +52,7 @@ max_sequence_length = 4096
 dtype = null  # Can be "float16", "bfloat16", or null for auto
 load_in_4bit = true
 load_in_8bit = false
-training_data_id = "your-dataset-id"  # Same as fine_tuner or different test set
+testing_data_id = "your-dataset-id"  # Same as fine_tuner or different test set
 question_column = "question"
 ground_truth_column = "answer"
 system_prompt_column = null  # Optional, can be null
@@ -62,6 +62,9 @@ use_cache = true
 temperature = 0.7
 min_p = 0.1
 hf_user_id = "your-huggingface-username"  # Used to generate model path
+run_name = null  # Leave null for random name; used for both dataset and mlflow
+run_name_prefix = "" 
+run_name_suffix = ""
 
 [evaluator]
 metrics = ["bleu", "rouge", "bert_score"]  # List of evaluation metrics
