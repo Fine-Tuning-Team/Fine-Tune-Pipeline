@@ -1,53 +1,53 @@
-name: RunPod Pod Lifecycle
+name: Deploy to RunPod
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  manage-runpod:
+  deploy-runpod-instance:
     runs-on: ubuntu-latest
     steps:
-      - name: Start RunPod Pod
-        id: start_pod
-        run: |
-          # Send a request to the RunPod API to start a pod.
-          # The response JSON is parsed with `jq` to extract the new pod's ID.
-          # This ID is then set as an output variable for later steps.
-          API_RESPONSE=$(curl --request POST \
-            --url https://api.runpod.io/v1/pods \
-            --header 'Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}' \
-            --header 'Content-Type: application/json' \
-            --data '{
-              "name": "My Auto-Started Pod",
-              "imageName": "runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04",
-              "gpuTypeIds": ["NVIDIA GeForce RTX 4090"],
-              "containerDiskInGb": 10,
-              "volumeInGb": 10,
-              "ports": "8888/http,22/tcp",
-              "gpuCount": 1
-            }')
-          
-          echo "API Response: $API_RESPONSE"
-          POD_ID=$(echo $API_RESPONSE | jq -r '.id')
-          
-          if [ -z "$POD_ID" ] || [ "$POD_ID" == "null" ]; then
-            echo "Failed to get POD ID from response."
-            exit 1
-          fi
-
-          echo "Successfully started pod with ID: $POD_ID"
-          echo "pod_id=$POD_I" >> $GITHUB_OUTPUT
-
-
-      - name: Wait for 30 seconds
-        run: sleep 30
-
-      - name: Terminate RunPod Pod
-        if: always()
-        run: |
-          echo "Terminating pod with ID: ${{ steps.start_pod.outputs.pod_id }}"
-          curl --request POST \
-            --url https://api.runpod.io/v1/pods/${{ steps.start_pod.outputs.pod_id }}/stop \
-            --header 'Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}'
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - name: Create RunPod Pod
+      run: |
+        response=$(curl --request POST \
+          --url https://rest.runpod.io/v1/pods \
+          --header 'Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}' \
+          --header 'Content-Type: application/json' \
+          --write-out "\nHTTP-STATUS:%{http_code}" \
+          --data '{
+          "cloudType": "SECURE",
+          "computeType": "GPU",
+          "containerDiskInGb": 50,
+          "cpuFlavorPriority": "availability",
+          "dataCenterIds": [
+            "EU-RO-1", "CA-MTL-1", "EU-SE-1", "US-IL-1", "EUR-IS-1", "EU-CZ-1",
+            "US-TX-3", "EUR-IS-2", "US-KS-2", "US-GA-2", "US-WA-1", "US-TX-1",
+            "CA-MTL-3", "EU-NL-1", "US-TX-4", "US-CA-2", "US-NC-1", "OC-AU-1",
+            "US-DE-1", "EUR-IS-3", "CA-MTL-2", "AP-JP-1", "EUR-NO-1", "EU-FR-1",
+            "US-KS-3", "US-GA-1"
+          ],
+          "dataCenterPriority": "availability",
+          "dockerEntrypoint": [],
+          "dockerStartCmd": [],
+          "env": {},
+          "globalNetworking": false,
+          "gpuCount": 1,
+          "gpuTypePriority": "availability",
+          "interruptible": false,
+          "locked": false,
+          "minRAMPerGPU": 8,
+          "minVCPUPerGPU": 2,
+          "name": "my-pod-from-github-actions",
+          "ports": [
+            "8888/http,22/tcp"
+          ],
+          "vcpuCount": 2,
+          "volumeInGb": 20,
+          "volumeMountPath": "/workspace"
+        }')
+        
+        echo "API Response:"
+        echo "$response"
