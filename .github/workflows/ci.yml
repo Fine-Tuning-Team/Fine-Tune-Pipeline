@@ -1,5 +1,4 @@
 name: Deploy to RunPod, Execute Command, and Terminate
-
 on:
   push:
     branches: [ main ]
@@ -97,7 +96,7 @@ jobs:
         echo "Timed out waiting for pod to become ready."
         exit 1
 
-    - name: Execute setup on RunPod instance
+    - name: Execute setup and run script on RunPod instance
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ steps.get_connection.outputs.pod_ip }}
@@ -112,11 +111,28 @@ jobs:
           echo "Cloning repository: ${{ github.repository }}"
           git clone https://github.com/${{ github.repository }}.git
 
+          REPO_NAME=$(basename ${{ github.repository }})
+          cd "$REPO_NAME"
+
+          echo "Checking out 'lora' branch..."
+          git checkout lora
+          
           # Install the uv package manager
           echo "Installing uv package manager..."
           curl -LsSf https://astral.sh/uv/install.sh | sh
-          
-          echo "Setup complete."
+
+          # Add uv to the PATH for the current session
+          source "$HOME/.cargo/env"
+
+          # Sync dependencies using uv
+          echo "Installing dependencies with uv sync..."
+          uv sync
+
+          # Run the finetuning script with secrets
+          echo "Running the finetuning script..."
+          uv run python app/finetuner.py --wandb-key "${{ secrets.WANDB_KEY }}" --hf-key "${{ secrets.HF_TOKEN }}"
+
+          echo "Finetuning script finished."
           
     - name: Terminate RunPod Pod
       if: always()
