@@ -300,7 +300,7 @@ class FineTune:
         trainer_stats = trainer.train()
         print(f"\n\nTraining completed with stats: {trainer_stats}")
         print(
-            f"Model and tokenizer saved to {self.config.model_local_output_dir} locally and to Hugging Face Hub with ID: {self.run_name}"
+            f"Model and tokenizer saved to {self.MODEL_LOCAL_OUTPUT_DIR} locally and to Hugging Face Hub with ID: {self.run_name}"
         )
         print("--- Fine-tuning completed successfully. ---")
         return trainer_stats
