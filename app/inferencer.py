@@ -6,8 +6,8 @@ import os
 import sys
 from tqdm import tqdm
 
-from .config_manager import get_config_manager, InferencerConfig
-from .utils import (
+from config_manager import get_config_manager, InferencerConfig
+from utils import (
     load_huggingface_dataset,
     push_dataset_to_huggingface,
     setup_run_name,
