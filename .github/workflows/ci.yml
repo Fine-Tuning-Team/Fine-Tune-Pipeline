@@ -133,7 +133,7 @@ jobs:
 
           # Run the finetuning script with secrets
           echo "Running the finetuning script..."
-          uv run python finetuner.py --wandb-key "${{ secrets.WANDB_KEY }}" --hf-key "${{ secrets.HF_TOKEN }}"
+          uv run python app/finetuner.py --wandb-key "${{ secrets.WANDB_KEY }}" --hf-key "${{ secrets.HF_TOKEN }}"
 
           echo "Finetuning script finished."
           
