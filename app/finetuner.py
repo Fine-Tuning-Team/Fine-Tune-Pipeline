@@ -32,6 +32,8 @@ class FineTune:
         self.tokenizer = None
         self.run_name = None
 
+        self.MODEL_LOCAL_OUTPUT_DIR = "./models/fine_tuned"
+
     def load_base_model_and_tokenizer(
         self,
     ) -> tuple[FastLanguageModel, PreTrainedTokenizerBase]:
@@ -278,7 +280,7 @@ class FineTune:
                 weight_decay=self.config.weight_decay,
                 lr_scheduler_type=self.config.lr_scheduler_type,
                 seed=self.config.seed,
-                output_dir=self.config.model_local_output_dir,  # Save checkpoints and outputs to local models dir
+                output_dir=self.MODEL_LOCAL_OUTPUT_DIR  # Save checkpoints and outputs to local models dir
                 report_to=self.config.report_to,
                 save_steps=self.config.save_steps,
                 save_total_limit=self.config.save_total_limit,
