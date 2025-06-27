@@ -4,7 +4,7 @@ from unsloth.chat_templates import get_chat_template, train_on_responses_only  #
 
 # import torch
 import os
-import sys
+import argparse
 import wandb
 
 from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
@@ -295,5 +295,26 @@ class FineTune:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Fine-tune a language model")
+    parser.add_argument(
+        "--wandb-key", 
+        type=str, 
+        help="Weights & Biases API key"
+    )
+    parser.add_argument(
+        "--hf-key", 
+        type=str, 
+        help="Hugging Face API token"
+    )
+    
+    args = parser.parse_args()
+    
+    # Set environment variables from command-line arguments
+    if args.wandb_key:
+        os.environ["WANDB_TOKEN"] = args.wandb_key
+    
+    if args.hf_key:
+        os.environ["HF_TOKEN"] = args.hf_key
+    
     tuner = FineTune()
     tuner.run()
