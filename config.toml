@@ -1,5 +1,5 @@
 [fine_tuner]
-base_model_id = "microsoft/DialoGPT-medium"  # Hugging Face model ID or local path
+base_model_id = "unsloth/Qwen2.5-0.5B-Instruct-bnb-4bit"  # Hugging Face model ID or local path
 max_sequence_length = 4096
 dtype = null  # Can be "float16", "bfloat16", or null for auto
 load_in_4bit = true
@@ -10,8 +10,8 @@ lora_alpha = 16
 lora_dropout = 0.1
 target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 bias = "none"
-training_data_id = "your-dataset-id"  # Hugging Face dataset ID or local path
-validation_data_id = "your-validation-dataset-id"  # Optional
+training_data_id = "rtweera/simple_implicit_n_qa_results_v2"  # Hugging Face dataset ID or local path
+validation_data_id = null  # Optional
 dataset_num_proc = 4  # Number of processes for dataset loading
 question_column = "question"
 ground_truth_column = "answer"
@@ -20,7 +20,7 @@ system_prompt_override_text = null  # Optional, can be null
 run_name = null  # Leave null for random name; used for both wandb and mlflow
 run_name_prefix = "" 
 run_name_suffix = ""
-wandb_project_name = "fine-tuning-project"
+wandb_project_name = "fine-tuning-project-ci-cd"
 device_train_batch_size = 4
 device_validation_batch_size = 4
 grad_accumulation = 4
