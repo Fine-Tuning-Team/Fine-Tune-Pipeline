@@ -179,8 +179,8 @@ class InferencerConfig:
 @dataclass
 class EvaluatorConfig:
     metrics: list[str]
-    llm_model_id: str
-    embedding_model_id: str | None  # Optional, can be None
+    llm: str
+    embedding: str | None  # Optional, can be None
 
     @classmethod
     def from_config(cls, config_manager: ConfigManager):
