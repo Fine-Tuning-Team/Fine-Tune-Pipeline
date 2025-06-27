@@ -146,8 +146,8 @@ jobs:
           exit 0
         fi
         
-        echo "Waiting for 2 minutes before terminating the pod..."
-        sleep 120
+        echo "Waiting for 1/2 minutes before terminating the pod..."
+        sleep 30
 
         echo "Terminating pod $pod_id..."
         curl --request DELETE \
