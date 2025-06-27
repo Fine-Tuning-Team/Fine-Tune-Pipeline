@@ -67,6 +67,6 @@ run_name_prefix = ""
 run_name_suffix = ""
 
 [evaluator]
-metrics = ["bleu", "rouge", "bert_score"]  # List of evaluation metrics
-llm_model_id = "gpt-3.5-turbo"  # LLM for evaluation
-embedding_model_id = null  # Optional embedding model for semantic evaluation
+metrics = ["bleu_score", "rouge_score", "factual_correctness"]  # List of evaluation metrics
+llm = "gpt-4o-mini"  # LLM for evaluation
+embedding = "text-embeddings-3-small"  # Optional embedding model for semantic evaluation

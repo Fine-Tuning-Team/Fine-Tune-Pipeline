@@ -295,5 +295,5 @@ class FineTune:
 
 
 if __name__ == "__main__":
-    print("[ERROR] Please run the pipeline using main.py, not directly")
-    sys.exit(1)
+    tuner = FineTune()
+    tuner.run()
