@@ -280,7 +280,7 @@ class FineTune:
                 weight_decay=self.config.weight_decay,
                 lr_scheduler_type=self.config.lr_scheduler_type,
                 seed=self.config.seed,
-                output_dir=self.MODEL_LOCAL_OUTPUT_DIR  # Save checkpoints and outputs to local models dir
+                output_dir=self.MODEL_LOCAL_OUTPUT_DIR,  # Save checkpoints and outputs to local models dir
                 report_to=self.config.report_to,
                 save_steps=self.config.save_steps,
                 save_total_limit=self.config.save_total_limit,
