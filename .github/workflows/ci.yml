@@ -97,7 +97,7 @@ jobs:
         echo "Timed out waiting for pod to become ready."
         exit 1
 
-    - name: Execute command on RunPod instance
+    - name: Execute setup on RunPod instance
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ steps.get_connection.outputs.pod_ip }}
@@ -105,9 +105,18 @@ jobs:
         port: ${{ steps.get_connection.outputs.ssh_port }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          echo "Hello World from inside the RunPod instance!"
-          echo "Current directory contents:"
-          ls -la
+          # Go to the workspace directory
+          cd /workspace
+
+          # Clone the repository that triggered this workflow
+          echo "Cloning repository: ${{ github.repository }}"
+          git clone https://github.com/${{ github.repository }}.git
+
+          # Install the uv package manager
+          echo "Installing uv package manager..."
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          
+          echo "Setup complete."
           
     - name: Terminate RunPod Pod
       if: always()
