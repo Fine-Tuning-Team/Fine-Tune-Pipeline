@@ -14,8 +14,8 @@ from transformers.data.data_collator import DataCollatorForSeq2Seq
 from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 
-from app.config_manager import get_config_manager, FineTunerConfig
-from app.utils import load_huggingface_dataset, login_huggingface, setup_run_name
+from .config_manager import get_config_manager, FineTunerConfig
+from .utils import load_huggingface_dataset, login_huggingface, setup_run_name
 
 
 class FineTune:
