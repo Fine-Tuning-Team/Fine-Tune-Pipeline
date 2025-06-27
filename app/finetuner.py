@@ -295,7 +295,7 @@ class FineTune:
                 response_part=self.config.answer_part,
             )
         print("Starting training...")
-        trainer_stats = "Skipped" #trainer.train()
+        trainer_stats = trainer.train()
         print(f"\n\nTraining completed with stats: {trainer_stats}")
         print(
             f"Model and tokenizer saved to {self.config.model_local_output_dir} locally and to Hugging Face Hub with ID: {self.run_name}"
