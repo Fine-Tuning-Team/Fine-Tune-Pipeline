@@ -70,7 +70,10 @@ def setup_run_name(*, name: str | None, prefix: str = "", suffix: str = "") -> s
                 "Run name contains invalid special characters: $, #, @, &, *, !"
             )
         run_name = name.strip()
-    run_name = prefix + run_name + suffix
+    if prefix != "":
+        run_name = prefix.strip() + "_" + run_name.strip()
+    if suffix != "":
+        run_name = run_name.strip() + "_" + suffix.strip()
     return run_name
 
 
