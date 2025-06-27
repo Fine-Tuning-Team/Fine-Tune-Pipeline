@@ -1,22 +1,25 @@
-name: Deploy to RunPod
+name: Deploy to RunPod and Execute Command
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  deploy-runpod-instance:
+  deploy-and-connect:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-    - name: Create RunPod Pod
+
+    - name: Create RunPod Pod and Get ID
+      id: create_pod
       run: |
-        response=$(curl --request POST \
+        # This step sends the request to create the pod.
+        # It then parses the response to get the new pod's ID.
+        response=$(curl -s --request POST \
           --url https://rest.runpod.io/v1/pods \
           --header 'Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}' \
           --header 'Content-Type: application/json' \
-          --write-out "\nHTTP-STATUS:%{http_code}" \
           --data '{
           "cloudType": "SECURE",
           "computeType": "GPU",
@@ -32,8 +35,9 @@ jobs:
           "dataCenterPriority": "availability",
           "dockerEntrypoint": [],
           "dockerStartCmd": [],
-          "env": {},
-          "globalNetworking": false,
+          "env": {
+              "PUBLIC_KEY": "${{ secrets.SSH_PUBLIC_KEY }}"
+          },
           "gpuCount": 1,
           "gpuTypePriority": "availability",
           "interruptible": false,
@@ -49,5 +53,56 @@ jobs:
           "volumeMountPath": "/workspace"
         }')
         
-        echo "API Response:"
-        echo "$response"
+        echo "API Response: $response"
+        # Extract the pod ID using jq for better JSON parsing
+        pod_id=$(echo "$response" | jq -r '.id')
+        echo "pod_id=$pod_id" >> $GITHUB_OUTPUT
+
+    - name: Wait for Pod to be Ready and Get Connection Info
+      id: get_connection
+      run: |
+        # This step polls the RunPod API until the pod is running and has an IP.
+        pod_id=${{ steps.create_pod.outputs.pod_id }}
+        echo "Waiting for pod $pod_id to be ready..."
+
+        for i in {1..30}; do # Timeout after 5 minutes (30 * 10s)
+            pod_status_response=$(curl -s --request GET \
+              --url "https://rest.runpod.io/v1/pods/$pod_id" \
+              --header 'Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}')
+            
+            # Check if the pod status is RUNNING and if a public IP has been assigned.
+            status=$(echo "$pod_status_response" | jq -r '.desiredStatus')
+            ip=$(echo "$pod_status_response" | jq -r '.publicIp')
+            
+            if [ "$status" == "RUNNING" ] && [ -n "$ip" ] && [ "$ip" != "null" ]; then
+                echo "Pod is running!"
+                # Extract the public SSH port from the portMappings.
+                port=$(echo "$pod_status_response" | jq -r '.portMappings["22"]')
+                
+                echo "IP Address: $ip"
+                echo "SSH Port: $port"
+
+                # Set the outputs for the next step.
+                echo "pod_ip=$ip" >> $GITHUB_OUTPUT
+                echo "ssh_port=$port" >> $GITHUB_OUTPUT
+                exit 0
+            fi
+            
+            echo "Pod not ready yet (Status: $status, IP: $ip). Waiting 10 seconds..."
+            sleep 10
+        done
+
+        echo "Timed out waiting for pod to become ready."
+        exit 1
+
+    - name: Install SSH client and run command
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ steps.get_connection.outputs.pod_ip }}
+        username: root
+        port: ${{ steps.get_connection.outputs.ssh_port }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          echo "Hello World from inside the RunPod instance!"
+          echo "Current directory contents:"
+          ls -la
