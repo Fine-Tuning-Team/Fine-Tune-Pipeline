@@ -1,7 +1,7 @@
 [fine_tuner]
 base_model_id = "unsloth/Qwen2.5-0.5B-Instruct-bnb-4bit"  # Hugging Face model ID or local path
 max_sequence_length = 4096
-dtype = null  # Can be "float16", "bfloat16", or null for auto
+dtype = "null"  # Can be "float16", "bfloat16", or null for auto
 load_in_4bit = true
 load_in_8bit = false
 full_finetuning = false
