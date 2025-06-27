@@ -14,8 +14,8 @@ from transformers.data.data_collator import DataCollatorForSeq2Seq
 from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 
-from app.config_manager import get_config_manager, FineTunerConfig
-from app.utils import load_huggingface_dataset, login_huggingface, setup_run_name
+from .app.config_manager import get_config_manager, FineTunerConfig
+from .app.utils import load_huggingface_dataset, login_huggingface, setup_run_name
 
 
 class FineTune:
@@ -295,7 +295,7 @@ class FineTune:
                 response_part=self.config.answer_part,
             )
         print("Starting training...")
-        trainer_stats = trainer.train()
+        trainer_stats = "Skipped" #trainer.train()
         print(f"\n\nTraining completed with stats: {trainer_stats}")
         print(
             f"Model and tokenizer saved to {self.config.model_local_output_dir} locally and to Hugging Face Hub with ID: {self.run_name}"
