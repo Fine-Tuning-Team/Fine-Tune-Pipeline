@@ -1,53 +1,53 @@
-name: RunPod On Master Merge
+name: RunPod Pod Lifecycle
 
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
-  runpod-job:
+  manage-runpod:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Start RunPod instance
+      - name: Start RunPod Pod
         id: start_pod
         run: |
-          echo "Starting RunPod pod..."
-          echo ${{ secrets.RUNPOD_API_KEY }}
-          POD_TEMPLATE_ID="lkwpvoo6fz"
-
-          RESPONSE=$(curl -s --request POST \
-            --header 'content-type: application/json' \
-            --url 'https://api.runpod.io/graphql?api_key=${{ secrets.RUNPOD_API_KEY }}' \
+          # Send a request to the RunPod API to start a pod.
+          # The response JSON is parsed with `jq` to extract the new pod's ID.
+          # This ID is then set as an output variable for later steps.
+          API_RESPONSE=$(curl --request POST \
+            --url https://api.runpod.io/v1/pods \
+            --header 'Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}' \
+            --header 'Content-Type: application/json' \
             --data '{
-              "query": "mutation { podFindAndDeployOnDemand( input: { cloudType: ALL, gpuCount: 1, volumeInGb: 40, containerDiskInGb: 40, minVcpuCount: 2, minMemoryInGb: 15, gpuTypeId: \"NVIDIA RTX A6000\", name: \"Runpod Tensorflow\", imageName: \"runpod/tensorflow\", dockerArgs: \"\", ports: \"8888/http\", volumeMountPath: \"/workspace\", env: [{ key: \"JUPYTER_PASSWORD\", value: \"rn51hunbpgtltcpac3ol\" }] } ) { id imageName } }"
+              "name": "My Auto-Started Pod",
+              "imageName": "runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04",
+              "gpuTypeIds": ["NVIDIA GeForce RTX 4090"],
+              "containerDiskInGb": 10,
+              "volumeInGb": 10,
+              "ports": "8888/http,22/tcp",
+              "gpuCount": 1
             }')
-
-          echo "RunPod API Response: $RESPONSE"
-          POD_ID=$(echo "$RESPONSE" | jq -r '.data.podFindAndDeployOnDemand.id')
-
-          if [ "$POD_ID" == "null" ] || [ -z "$POD_ID" ]; then
-            echo "❌ Failed to start RunPod pod."
+          
+          echo "API Response: $API_RESPONSE"
+          POD_ID=$(echo $API_RESPONSE | jq -r '.id')
+          
+          if [ -z "$POD_ID" ] || [ "$POD_ID" == "null" ]; then
+            echo "Failed to get POD ID from response."
             exit 1
           fi
 
-          echo "✅ Started pod: $POD_ID"
-          echo "POD_ID=$POD_ID" >> $GITHUB_ENV
+          echo "Successfully started pod with ID: $POD_ID"
+          echo "pod_id=$POD_I" >> $GITHUB_OUTPUT
 
-      - name: Wait for 1 minute
-        run: sleep 60
 
-      - name: Terminate RunPod instance
-        if: env.POD_ID != ''
+      - name: Wait for 30 seconds
+        run: sleep 30
+
+      - name: Terminate RunPod Pod
+        if: always()
         run: |
-          echo "Stopping RunPod pod $POD_ID..."
-
-          curl -s --request POST \
-            --header 'content-type: application/json' \
-            --url 'https://api.runpod.io/graphql?api_key=${{ secrets.RUNPOD_API_KEY }}' \
-            --data "{
-              \"query\": \"mutation { podTerminate(input: { podId: \\\"$POD_ID\\\" }) { id } }\"
-            }"
-
-          echo "✅ Terminated pod $POD_ID"
+          echo "Terminating pod with ID: ${{ steps.start_pod.outputs.pod_id }}"
+          curl --request POST \
+            --url https://api.runpod.io/v1/pods/${{ steps.start_pod.outputs.pod_id }}/stop \
+            --header 'Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}'
