@@ -27,6 +27,7 @@ class Inferencer:
         self.OUTPUT_SYSTEM_PROMPT_COLUMN = "system_prompt"
         self.OUTPUT_USER_PROMPT_COLUMN = "user_prompt"
         self.OUTPUT_ASSISTANT_RESPONSE_COLUMN = "assistant_response"
+        self.OUTPUT_GROUND_TRUTH_COLUMN = "ground_truth"
         self.OUTPUT_FILE_NAME = "inferencer_output.jsonl"
 
     def get_system_prompt(self, data_row):
@@ -40,6 +41,25 @@ class Inferencer:
         else:
             system_part = None
         return system_part
+
+    def get_user_question(self, data_row):
+        """
+        Get the question column from the dataset.
+        """
+        if self.config.question_column is None:
+            raise ValueError("Question column is not specified in the configuration.")
+        question = data_row[self.config.question_column].strip()
+        return question
+
+    def get_ground_truth(self, data_row):
+        """
+        Get the ground truth from the dataset.
+        """
+        if self.config.ground_truth_column is not None:
+            ground_truth = data_row[self.config.ground_truth_column].strip()
+        else:
+            ground_truth = None
+        return ground_truth
 
     # TODO: Can we do this as a batch like we do in training?
     def convert_a_data_row_to_conversation_format(self, data_row):
@@ -106,8 +126,9 @@ class Inferencer:
         # output_ids[0][tokenized_msg.shape[-1]:] --> output_ids[0] is the generated response, and we skip the user and system parts by slicing from the end of the tokenized message.
         output_data_row = {
             self.OUTPUT_SYSTEM_PROMPT_COLUMN: self.get_system_prompt(data_row),
-            self.OUTPUT_USER_PROMPT_COLUMN: data_row[self.config.question_column],
+            self.OUTPUT_USER_PROMPT_COLUMN: self.get_user_question(data_row),
             self.OUTPUT_ASSISTANT_RESPONSE_COLUMN: model_response,
+            self.OUTPUT_GROUND_TRUTH_COLUMN: self.get_ground_truth(data_row),
         }
         return output_data_row
 
