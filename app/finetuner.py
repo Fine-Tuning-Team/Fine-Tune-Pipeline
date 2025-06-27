@@ -285,7 +285,7 @@ class FineTune:
                 push_to_hub=self.config.push_to_hub,
                 hub_model_id=self.run_name,
             ),
-            callbacks=[None],
+            callbacks=[],
         )
         print("Trainer initialized successfully.")
         if self.config.train_on_responses_only:
