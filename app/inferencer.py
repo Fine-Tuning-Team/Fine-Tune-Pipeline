@@ -5,6 +5,7 @@ import json
 import os
 import sys
 from tqdm import tqdm
+import argparse
 
 from config_manager import get_config_manager, InferencerConfig
 from utils import (

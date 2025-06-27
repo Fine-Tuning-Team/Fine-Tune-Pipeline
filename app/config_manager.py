@@ -144,7 +144,6 @@ class FineTunerConfig:
     save_total_limit: int  # Limit the number of saved checkpoints
     push_to_hub: bool  # Push the model to Hugging Face Hub
     report_to: str  # Reporting tool, e.g., "wandb", "tensorboard", "none"
-    model_local_output_dir: str  # Local directory to save the model and checkpoints
     packing: bool  # Can make 5x training faster, for shorter sequences
     use_gradient_checkpointing: (
         str | bool
