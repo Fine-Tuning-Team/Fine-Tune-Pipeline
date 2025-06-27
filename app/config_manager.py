@@ -28,15 +28,15 @@ class ConfigManager:
         self._convert_null_strings(self._config)
 
     def _convert_null_strings(self, config: Dict[str, Any]) -> None:
-    """Recursively convert string 'null' values to Python None."""
-    for key, value in config.items():
-        if isinstance(value, dict):
-            self._convert_null_strings(value)
-        elif isinstance(value, list):
-            # Handle lists that might contain "null" strings
-            config[key] = [None if item == "null" else item for item in value]
-        elif value == "null":
-            config[key] = None
+        """Recursively convert string 'null' values to Python None."""
+        for key, value in config.items():
+            if isinstance(value, dict):
+                self._convert_null_strings(value)
+            elif isinstance(value, list):
+                # Handle lists that might contain "null" strings
+                config[key] = [None if item == "null" else item for item in value]
+            elif value == "null":
+                config[key] = None
 
     def _resolve_env_vars(self, config: Dict[str, Any]) -> None:
         """Recursively resolve environment variables in config values."""
