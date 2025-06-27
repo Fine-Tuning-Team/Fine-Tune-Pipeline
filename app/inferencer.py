@@ -19,9 +19,11 @@ class Inferencer:
         self.config = InferencerConfig.from_config(config_manager)
 
         # TODO: Load the model name from the previous finetuner step trained model iD
-        self.model_id = "LOAD THE MODEL NAME HERE"
         self.model = None
         self.tokenizer = None
+
+        # NOTE: IF CHANGED, UPDATE THE **EVFINETUNER** AS WELL
+        self.MODEL_LOCAL_INPUT_DIR = "./models/fine_tuned"
 
         # NOTE: IF CHANGED, UPDATE THE **EVALUATOR** AS WELL
         self.OUTPUT_SYSTEM_PROMPT_COLUMN = "system_prompt"
@@ -55,10 +57,9 @@ class Inferencer:
         """
         Get the ground truth from the dataset.
         """
-        if self.config.ground_truth_column is not None:
-            ground_truth = data_row[self.config.ground_truth_column].strip()
-        else:
-            ground_truth = None
+        if self.config.ground_truth_column is None:
+            raise ValueError("Ground truth column is not specified in the configuration.")
+        ground_truth = data_row[self.config.ground_truth_column].strip()
         return ground_truth
 
     # TODO: Can we do this as a batch like we do in training?
@@ -154,10 +155,11 @@ class Inferencer:
 
         # Load the model
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
-            model_name=self.model_id,
+            model_name=self.MODEL_LOCAL_INPUT_DIR,
             max_seq_length=self.config.max_sequence_length,
             dtype=self.config.dtype,
             load_in_4bit=self.config.load_in_4bit,
+            load_in_8bit=self.config.load_in_8bit,
             token=os.getenv("HF_TOKEN"),
         )
         FastLanguageModel.for_inference(self.model)
@@ -185,5 +187,18 @@ class Inferencer:
 
 
 if __name__ == "__main__":
-    print("[ERROR] Please run the pipeline using main.py, not modules/runner.py.")
-    sys.exit(1)
+    parser = argparse.ArgumentParser(description="Inference the language model")
+    parser.add_argument(
+        "--hf-key", 
+        type=str, 
+        help="Hugging Face API token"
+    )
+    
+    args = parser.parse_args()
+    
+    # Set environment variables from command-line arguments
+    if args.hf_key:
+        os.environ["HF_TOKEN"] = args.hf_key
+    
+    inferencer = Inferencer()
+    inferencer.run()
