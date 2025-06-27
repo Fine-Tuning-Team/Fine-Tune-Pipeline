@@ -1,4 +1,5 @@
 name: Deploy to RunPod, Execute Command, and Terminate
+
 on:
   push:
     branches: [ main ]
@@ -111,9 +112,11 @@ jobs:
           echo "Cloning repository: ${{ github.repository }}"
           git clone https://github.com/${{ github.repository }}.git
 
+          # Get the repository name from the full name (e.g., 'my-repo' from 'owner/my-repo')
           REPO_NAME=$(basename ${{ github.repository }})
           cd "$REPO_NAME"
 
+          # Checkout the 'lora' branch
           echo "Checking out 'lora' branch..."
           git checkout lora
           
@@ -121,8 +124,8 @@ jobs:
           echo "Installing uv package manager..."
           curl -LsSf https://astral.sh/uv/install.sh | sh
 
-          # Add uv to the PATH for the current session
-          source "$HOME/.cargo/env"
+          # Add uv to the PATH for the current session by sourcing the correct environment file
+          source "$HOME/.local/bin/env"
 
           # Sync dependencies using uv
           echo "Installing dependencies with uv sync..."
@@ -130,7 +133,7 @@ jobs:
 
           # Run the finetuning script with secrets
           echo "Running the finetuning script..."
-          uv run python app/finetuner.py --wandb-key "${{ secrets.WANDB_KEY }}" --hf-key "${{ secrets.HF_TOKEN }}"
+          uv run python finetuner.py --wandb-key "${{ secrets.WANDB_KEY }}" --hf-key "${{ secrets.HF_TOKEN }}"
 
           echo "Finetuning script finished."
           
