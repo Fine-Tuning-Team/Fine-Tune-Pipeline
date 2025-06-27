@@ -17,6 +17,7 @@ jobs:
         id: start_pod
         run: |
           echo "Starting RunPod pod..."
+          echo ${{ secrets.RUNPOD_API_KEY }}
           POD_TEMPLATE_ID="lkwpvoo6fz"
 
           RESPONSE=$(curl -s -X POST https://api.runpod.io/graphql \
