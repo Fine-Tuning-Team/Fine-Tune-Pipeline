@@ -23,7 +23,7 @@ class Inferencer:
         self.model = None
         self.tokenizer = None
 
-        # NOTE: IF CHANGED, UPDATE THE **EVFINETUNER** AS WELL
+        # NOTE: IF CHANGED, UPDATE THE **FINETUNER** AS WELL
         self.MODEL_LOCAL_INPUT_DIR = "./models/fine_tuned"
 
         # NOTE: IF CHANGED, UPDATE THE **EVALUATOR** AS WELL
@@ -153,6 +153,7 @@ class Inferencer:
         """
         # Load the dataset
         testing_dataset = load_huggingface_dataset(self.config.testing_data_id)
+        print("--- ✅ Loaded testing dataset successfully. ---")
 
         # Load the model
         self.model, self.tokenizer = FastLanguageModel.from_pretrained(
@@ -163,15 +164,19 @@ class Inferencer:
             load_in_8bit=self.config.load_in_8bit,
             token=os.getenv("HF_TOKEN"),
         )
+        print("--- ✅ Loaded model and tokenizer successfully. ---")
         FastLanguageModel.for_inference(self.model)
+        print("--- ✅ Model set for inference. ---")
 
         self.run_name = setup_run_name(
             name=self.config.run_name,
             prefix=self.config.run_name_prefix,
             suffix=self.config.run_name_suffix,
         )
+        print(f"--- ✅ Run name set to: {self.run_name} ---")
 
         # Model response generation
+        print("--- ✅ Starting inference on the testing dataset. ---"
         for data_row in tqdm(
             testing_dataset, desc="Generating responses", unit="data_row"
         ):
@@ -182,9 +187,9 @@ class Inferencer:
                 dataset_path=self.OUTPUT_FILE_NAME,
             )
         print(
-            f"Responses saved to {self.OUTPUT_FILE_NAME} and pushed to HuggingFace Hub under {self.config.hf_user_id}/{self.run_name}"
+            f"--- ✅ Responses saved to {self.OUTPUT_FILE_NAME} and pushed to HuggingFace Hub under {self.config.hf_user_id}/{self.run_name} ---"
         )
-        print("--- Inference completed successfully. ---")
+        print("--- ✅ Inference completed successfully. ---")
 
 
 if __name__ == "__main__":

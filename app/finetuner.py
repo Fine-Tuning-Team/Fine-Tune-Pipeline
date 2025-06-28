@@ -196,7 +196,7 @@ class FineTune:
         """
         # Login to HF
         login_huggingface()
-        print("Login to Hugging Face Hub successful.")
+        print("--- ✅ Login to Hugging Face Hub successful. ---")
 
         # Load training and validation data
         training_dataset = load_huggingface_dataset(self.config.training_data_id)
@@ -206,16 +206,16 @@ class FineTune:
             )
         else:
             validation_dataset = None
-        print(f"Training dataset loaded: {self.config.training_data_id}")
+        print(f"--- ✅ Training dataset loaded: {self.config.training_data_id} ---")
         if validation_dataset is not None:
-            print(f"Validation dataset loaded: {self.config.validation_data_id}")
+            print(f"--- ✅ Validation dataset loaded: {self.config.validation_data_id} ---")
         else:
-            print("No validation dataset provided. Skipping validation.")
+            print("--- ✅ No validation dataset provided. Skipping validation. ---")
         
         # Initialize model and tokenizer
         self.model, self.tokenizer = self.load_base_model_and_tokenizer()
         self.model = self.get_peft_model()
-        print("Model and tokenizer loaded successfully.")
+        print("--- ✅ Model and tokenizer loaded successfully. ---")
 
         # Data operations
         # strip doesnt work with batched=True, so we use batched=False
@@ -243,7 +243,7 @@ class FineTune:
             validation_dataset = validation_dataset.map(
                 self.apply_chat_template_to_conversations, batched=True
             )
-        print("Data preprocessing completed.")
+        print("--- ✅ Data preprocessing completed. ---")
 
         self.run_name = setup_run_name(
             name=self.config.run_name,
@@ -252,7 +252,7 @@ class FineTune:
         )
         print(f"Run name set to: {self.run_name}")
         self.handle_wandb_setup()
-        print("Weights & Biases setup completed.")
+        print("--- ✅ Weights & Biases setup completed. ---")
 
         # Training
         trainer = SFTTrainer(
@@ -289,20 +289,20 @@ class FineTune:
             ),
             callbacks=[],
         )
-        print("Trainer initialized successfully.")
+        print("--- ✅ Trainer initialized successfully. ---")
         if self.config.train_on_responses_only:
             trainer = train_on_responses_only(
                 trainer,
                 instruction_part=self.config.question_part,
                 response_part=self.config.answer_part,
             )
-        print("Starting training...")
+        print("--- ✅ Starting training... ---")
         trainer_stats = trainer.train()
-        print(f"\n\nTraining completed with stats: {trainer_stats}")
+        print(f"\n\n--- ✅ Training completed with stats: {trainer_stats} ---")
         print(
-            f"Model and tokenizer saved to {self.MODEL_LOCAL_OUTPUT_DIR} locally and to Hugging Face Hub with ID: {self.run_name}"
+            f"--- ✅ Model and tokenizer saved to {self.MODEL_LOCAL_OUTPUT_DIR} locally and to Hugging Face Hub with ID: {self.run_name} ---"
         )
-        print("--- Fine-tuning completed successfully. ---")
+        print("--- ✅ Fine-tuning completed successfully. ---")
         return trainer_stats
 
 
