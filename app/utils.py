@@ -94,3 +94,14 @@ def push_dataset_to_huggingface(
         token=os.getenv("HF_TOKEN"),
         private=False,  # Set to True if you want the dataset to be private. INFO: Not interested RN
     )
+
+def setup_openai_key():
+    """
+    Set up OpenAI API key from environment variables.
+    Raises:
+        ValueError: If the OpenAI API key is not set in the environment variables.
+    """
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    if not openai_api_key:
+        raise ValueError("OpenAI API key is not set in the environment variables.")
+    
