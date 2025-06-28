@@ -70,7 +70,7 @@ class FineTune:
             lora_alpha=self.config.lora_alpha,
             lora_dropout=self.config.lora_dropout,
             bias=self.config.bias,
-            use_gradient_checkpointing=self.config.use_gradient_checkpointing,
+            use_gradient_checkpointing=self.config.use_gradient_checkpointing,  # type: ignore
             random_state=self.config.seed,
             use_rslora=self.config.use_rslora,
             loftq_config=self.config.loftq_config,
@@ -297,7 +297,7 @@ class FineTune:
                 response_part=self.config.answer_part,
             )
         print("--- ✅ Starting training... ---")
-        trainer_stats = trainer.train()
+        trainer_stats = trainer.train() # type: ignore
         print(f"\n\n--- ✅ Training completed with stats: {trainer_stats} ---")
         print(
             f"--- ✅ Model and tokenizer saved to {self.MODEL_LOCAL_OUTPUT_DIR} locally and to Hugging Face Hub with ID: {self.run_name} ---"
