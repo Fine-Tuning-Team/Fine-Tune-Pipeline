@@ -8,8 +8,8 @@ from ragas.embeddings import embedding_factory
 from ragas.llms import llm_factory
 from ragas.metrics import SemanticSimilarity, AnswerAccuracy, FactualCorrectness, RougeScore, BleuScore, AnswerCorrectness, AnswerRelevancy, Metric
 
-from app.config_manager import get_config_manager, EvaluatorConfig
-from app.utils import setup_run_name, setup_openai_key
+from config_manager import get_config_manager, EvaluatorConfig
+from utils import setup_run_name, setup_openai_key
 
 
 class Evaluator:
@@ -105,7 +105,12 @@ class Evaluator:
         """
         if self.input_dataset is None:
             raise ValueError("Input dataset is not loaded. Please load the inferencer output first.")
-        results = evaluate(self.input_dataset, metrics=self.metrics, llm=self.llm, embeddings=self.embeddings)
+        column_map = {
+            "question": self.INPUT_USER_PROMPT_COLUMN,
+            "answer": self.INPUT_ASSISTANT_RESPONSE_COLUMN,
+            "ground_truth": self.INPUT_GROUND_TRUTH_COLUMN,
+        }
+        results = evaluate(self.input_dataset, metrics=self.metrics, llm=self.llm, embeddings=self.embeddings, column_map=column_map)
         self.evaluation_results = results
 
     def get_summary_results(self) -> dict:
