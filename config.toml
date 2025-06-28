@@ -67,5 +67,10 @@ run_name_suffix = ""
 
 [evaluator]
 metrics = ["bleu_score", "rouge_score", "factual_correctness"]  # List of evaluation metrics
+# LIST OF SUPPORTED METRICS:
+# "bleu_score", "rouge_score", "factual_correctness", "semantic_similarity", "answer_accuracy", "answer_relevancy", "answer_correctness"
 llm = "gpt-4o-mini"  # LLM for evaluation
 embedding = "text-embeddings-3-small"  # embedding model for semantic evaluation
+run_name = "null"  # Leave null for random name; used for both dataset and mlflow
+run_name_prefix = ""
+run_name_suffix = ""

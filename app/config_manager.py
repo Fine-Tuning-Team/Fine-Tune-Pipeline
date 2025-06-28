@@ -193,7 +193,10 @@ class InferencerConfig:
 class EvaluatorConfig:
     metrics: list[str]
     llm: str
-    embedding: str 
+    embedding: str
+    run_name: str | None
+    run_name_prefix: str
+    run_name_suffix: str 
 
     @classmethod
     def from_config(cls, config_manager: ConfigManager):
