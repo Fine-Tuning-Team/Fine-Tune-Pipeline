@@ -192,7 +192,7 @@ class InferencerConfig:
 @dataclass
 class EvaluatorConfig:
     metrics: list[str]
-    llm: str
+    llm: str | None # Optional, can be None
     embedding: str | None  # Optional, can be None
 
     @classmethod
