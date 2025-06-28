@@ -12,6 +12,7 @@ from utils import (
     load_huggingface_dataset,
     push_dataset_to_huggingface,
     setup_run_name,
+    login_huggingface,
 )
 
 
@@ -151,6 +152,10 @@ class Inferencer:
         """
         Generate responses for each user prompt in the dataset and return as a list of dicts.
         """
+        # Login to HF
+        login_huggingface()
+        print("--- ✅ Login to Hugging Face Hub successful. ---")
+
         # Load the dataset
         testing_dataset = load_huggingface_dataset(self.config.testing_data_id)
         print("--- ✅ Loaded testing dataset successfully. ---")
