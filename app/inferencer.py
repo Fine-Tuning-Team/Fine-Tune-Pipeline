@@ -176,7 +176,7 @@ class Inferencer:
         print(f"--- ✅ Run name set to: {self.run_name} ---")
 
         # Model response generation
-        print("--- ✅ Starting inference on the testing dataset. ---"
+        print("--- ✅ Starting inference on the testing dataset. ---")
         for data_row in tqdm(
             testing_dataset, desc="Generating responses", unit="data_row"
         ):

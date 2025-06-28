@@ -87,7 +87,7 @@ def login_huggingface():
 
 
 def push_dataset_to_huggingface(
-    repo_id: str, dataset_path: str, hf_token: str | None = os.getenv("HF_TOKEN")
+    repo_id: str, dataset_path: str
 ):
     """
     Push a dataset to HuggingFace Hub. If the dataset already exists, update it with a new commit.
@@ -97,6 +97,7 @@ def push_dataset_to_huggingface(
         repo_id (str): The repository ID on HuggingFace Hub (e.g., 'username/repo_name').
         hf_token (str): HuggingFace authentication token.
     """
+    hf_token: str | None = os.getenv("HF_TOKEN")
     if not hf_token:
         raise ValueError(
             "HuggingFace token is not set. Please set the HF_TOKEN environment variable."
