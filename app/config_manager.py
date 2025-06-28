@@ -192,8 +192,8 @@ class InferencerConfig:
 @dataclass
 class EvaluatorConfig:
     metrics: list[str]
-    llm: str | None # Optional, can be None
-    embedding: str | None  # Optional, can be None
+    llm: str
+    embedding: str 
 
     @classmethod
     def from_config(cls, config_manager: ConfigManager):

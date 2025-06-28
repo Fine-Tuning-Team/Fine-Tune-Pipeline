@@ -68,4 +68,4 @@ run_name_suffix = ""
 [evaluator]
 metrics = ["bleu_score", "rouge_score", "factual_correctness"]  # List of evaluation metrics
 llm = "gpt-4o-mini"  # LLM for evaluation
-embedding = "text-embeddings-3-small"  # Optional embedding model for semantic evaluation
+embedding = "text-embeddings-3-small"  # embedding model for semantic evaluation
