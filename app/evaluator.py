@@ -9,7 +9,7 @@ from ragas.llms import llm_factory
 from ragas.metrics import SemanticSimilarity, AnswerAccuracy, FactualCorrectness, RougeScore, BleuScore, AnswerCorrectness, AnswerRelevancy, Metric
 
 from config_manager import get_config_manager, EvaluatorConfig
-from utils import setup_run_name, setup_openai_key
+from utils import setup_run_name, setup_openai_key, login_huggingface
 
 
 class Evaluator:
@@ -149,6 +149,9 @@ class Evaluator:
         """
         Run the evaluation process.
         """
+        # Login to Hugging Face
+        login_huggingface()
+
         # Setup openai key
         setup_openai_key()
 
@@ -160,6 +163,10 @@ class Evaluator:
         )
         print(f"--- ✅ Run name set to: {self.run_name} ---")
 
+        # Load the Ragas metrics functions based on the configuration
+        self.set_ragas_metrics()
+        print(f"--- ✅ Loaded Ragas metrics: {self.config.metrics} ---")
+
         # Load embeddings and LLM
         self.load_embeddings()
         self.load_llm()
@@ -169,10 +176,6 @@ class Evaluator:
         self.load_inferencer_output()
         print(f"--- ✅ Loaded inferencer output dataset from {self.INPUT_FILE_NAME} ---")
         
-        # Load the Ragas metrics functions based on the configuration
-        self.set_ragas_metrics()
-        print(f"--- ✅ Loaded Ragas metrics: {self.config.metrics} ---")
-
         # Evaluate the dataset using the specified metrics
         self.evaluate()
         print(f"--- ✅ Evaluation completed with results: {self.get_summary_results()} ---")
