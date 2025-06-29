@@ -1,4 +1,10 @@
-from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict, load_dataset
+from datasets import (
+    Dataset,
+    DatasetDict,
+    IterableDataset,
+    IterableDatasetDict,
+    load_dataset,
+)
 import datasets
 import pandas as pd
 import os
@@ -60,9 +66,7 @@ def login_huggingface():
     login(token=os.getenv("HF_TOKEN"))
 
 
-def push_dataset_to_huggingface(
-    repo_id: str, dataset_path: str
-):
+def push_dataset_to_huggingface(repo_id: str, dataset_path: str):
     """
     Push a dataset to HuggingFace Hub. If the dataset already exists, update it with a new commit.
 
@@ -95,6 +99,7 @@ def push_dataset_to_huggingface(
         private=False,  # Set to True if you want the dataset to be private. INFO: Not interested RN
     )
 
+
 def setup_openai_key():
     """
     Set up OpenAI API key from environment variables.
@@ -104,4 +109,3 @@ def setup_openai_key():
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         raise ValueError("OpenAI API key is not set in the environment variables.")
-    

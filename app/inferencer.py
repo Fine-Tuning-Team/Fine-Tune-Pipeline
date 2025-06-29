@@ -1,12 +1,12 @@
-import unsloth  # type: ignore
-from unsloth import FastLanguageModel  # type: ignore
+import unsloth  # type: ignore # Do not remove this import, it is required for the unsloth library to work properly
+from unsloth import FastLanguageModel
 
+import argparse
 import json
 import os
-import sys
 from tqdm import tqdm
-import argparse
 
+# Local imports
 from config_manager import get_config_manager, InferencerConfig
 from utils import (
     load_huggingface_dataset,
@@ -60,7 +60,9 @@ class Inferencer:
         Get the ground truth from the dataset.
         """
         if self.config.ground_truth_column is None:
-            raise ValueError("Ground truth column is not specified in the configuration.")
+            raise ValueError(
+                "Ground truth column is not specified in the configuration."
+            )
         ground_truth = data_row[self.config.ground_truth_column].strip()
         return ground_truth
 
@@ -199,17 +201,13 @@ class Inferencer:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Inference the language model")
-    parser.add_argument(
-        "--hf-key", 
-        type=str, 
-        help="Hugging Face API token"
-    )
-    
+    parser.add_argument("--hf-key", type=str, help="Hugging Face API token")
+
     args = parser.parse_args()
-    
+
     # Set environment variables from command-line arguments
     if args.hf_key:
         os.environ["HF_TOKEN"] = args.hf_key
-    
+
     inferencer = Inferencer()
     inferencer.run()

@@ -1,8 +1,9 @@
 import os
 import toml
+
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Any
-from dataclasses import dataclass
 
 
 class ConfigManager:
@@ -196,7 +197,7 @@ class EvaluatorConfig:
     embedding: str
     run_name: str | None
     run_name_prefix: str
-    run_name_suffix: str 
+    run_name_suffix: str
 
     @classmethod
     def from_config(cls, config_manager: ConfigManager):

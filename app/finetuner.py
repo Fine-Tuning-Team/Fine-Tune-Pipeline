@@ -1,10 +1,9 @@
-import unsloth  # type: ignore
-from unsloth import FastLanguageModel, is_bfloat16_supported  # type: ignore
-from unsloth.chat_templates import get_chat_template, train_on_responses_only  # type: ignore
+import unsloth  # type: ignore # Do not remove this import, it is required for the unsloth library to work properly
+from unsloth import FastLanguageModel, is_bfloat16_supported
+from unsloth.chat_templates import get_chat_template, train_on_responses_only
 
-# import torch
-import os
 import argparse
+import os
 import wandb
 
 from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
@@ -13,7 +12,7 @@ from transformers.training_args import TrainingArguments
 from transformers.data.data_collator import DataCollatorForSeq2Seq
 from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
-
+# Local imports
 from config_manager import get_config_manager, FineTunerConfig
 from utils import load_huggingface_dataset, login_huggingface, setup_run_name
 
@@ -208,10 +207,12 @@ class FineTune:
             validation_dataset = None
         print(f"--- ✅ Training dataset loaded: {self.config.training_data_id} ---")
         if validation_dataset is not None:
-            print(f"--- ✅ Validation dataset loaded: {self.config.validation_data_id} ---")
+            print(
+                f"--- ✅ Validation dataset loaded: {self.config.validation_data_id} ---"
+            )
         else:
             print("--- ✅ No validation dataset provided. Skipping validation. ---")
-        
+
         # Initialize model and tokenizer
         self.model, self.tokenizer = self.load_base_model_and_tokenizer()
         self.model = self.get_peft_model()
@@ -297,7 +298,7 @@ class FineTune:
                 response_part=self.config.answer_part,
             )
         print("--- ✅ Starting training... ---")
-        trainer_stats = trainer.train() # type: ignore
+        trainer_stats = trainer.train()  # type: ignore
         print(f"\n\n--- ✅ Training completed with stats: {trainer_stats} ---")
         print(
             f"--- ✅ Model and tokenizer saved to {self.MODEL_LOCAL_OUTPUT_DIR} locally and to Hugging Face Hub with ID: {self.run_name} ---"
@@ -308,25 +309,17 @@ class FineTune:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fine-tune a language model")
-    parser.add_argument(
-        "--wandb-key", 
-        type=str, 
-        help="Weights & Biases API key"
-    )
-    parser.add_argument(
-        "--hf-key", 
-        type=str, 
-        help="Hugging Face API token"
-    )
-    
+    parser.add_argument("--wandb-key", type=str, help="Weights & Biases API key")
+    parser.add_argument("--hf-key", type=str, help="Hugging Face API token")
+
     args = parser.parse_args()
-    
+
     # Set environment variables from command-line arguments
     if args.wandb_key:
         os.environ["WANDB_TOKEN"] = args.wandb_key
-    
+
     if args.hf_key:
         os.environ["HF_TOKEN"] = args.hf_key
-    
+
     tuner = FineTune()
     tuner.run()
