@@ -192,3 +192,33 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Fine-Tune Pipeline specific
+/site/  # MkDocs documentation build output
+models/  # Fine-tuned models
+*.jsonl  # Dataset and output files
+*.xlsx   # Evaluation reports
+config.local.toml  # Local configuration overrides
+config.*.toml      # Environment-specific configs
+.wandb/            # Weights & Biases logs
+
+# API keys and secrets
+.env
+.env.local
+.env.*.local
+*.secret.*
+
+# Hugging Face cache
+.cache/huggingface/
+transformers_cache/
+
+# Dataset files
+data/
+datasets/
+
+# Logs and temporary files
+logs/
+*.log
+temp/
+tmp/
+.tmp/
