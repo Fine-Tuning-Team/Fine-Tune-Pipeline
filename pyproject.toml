@@ -20,3 +20,11 @@ dependencies = [
     "unsloth>=2025.6.8",
     "wandb>=0.20.1",
 ]
+
+[project.optional-dependencies]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.24.0",
+    "mkdocs-mermaid2-plugin>=1.1.0",
+]
