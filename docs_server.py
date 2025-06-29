@@ -31,16 +31,44 @@ def check_uv_installed():
 
 def install_docs_dependencies():
     """Install documentation dependencies."""
-    if not check_uv_installed():
-        print("❌ uv is not installed. Please install uv first:")
-        print("   https://docs.astral.sh/uv/getting-started/installation/")
-        return False
+    print("🔍 Checking documentation dependencies...")
     
-    # Install docs dependencies
-    if not run_command("uv sync --extra docs", "Installing documentation dependencies"):
-        return False
+    # First, try to check if mkdocs is already available
+    try:
+        subprocess.run(["mkdocs", "--version"], check=True, capture_output=True)
+        print("✅ MkDocs is already available")
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("📦 MkDocs not found, need to install dependencies")
     
-    return True
+    # Try uv first
+    if check_uv_installed():
+        print("🔄 Using uv to install dependencies...")
+        if run_command("uv sync --extra docs", "Installing documentation dependencies with uv"):
+            return True
+        else:
+            print("⚠️  uv sync failed, trying pip fallback...")
+    else:
+        print("⚠️  uv not found, using pip fallback...")
+    
+    # Fallback to pip
+    print("🔄 Using pip to install dependencies...")
+    deps = [
+        "mkdocs>=1.5.0",
+        "mkdocs-material>=9.0.0", 
+        "mkdocstrings[python]>=0.24.0",
+        "mkdocs-mermaid2-plugin>=1.1.0",
+        "pymdown-extensions"
+    ]
+    
+    pip_cmd = f"pip install {' '.join(deps)}"
+    if run_command(pip_cmd, "Installing documentation dependencies with pip"):
+        return True
+    
+    print("❌ Failed to install dependencies with both uv and pip")
+    print("💡 You can manually install dependencies:")
+    print("   pip install mkdocs mkdocs-material mkdocstrings[python] mkdocs-mermaid2-plugin pymdown-extensions")
+    return False
 
 def serve_docs():
     """Serve documentation locally."""
@@ -48,18 +76,38 @@ def serve_docs():
     print("📖 Documentation will be available at: http://127.0.0.1:8000")
     print("🛑 Press Ctrl+C to stop the server")
     
-    try:
-        subprocess.run(["uv", "run", "mkdocs", "serve"], check=True)
-    except KeyboardInterrupt:
-        print("\n👋 Documentation server stopped")
-    except subprocess.CalledProcessError as e:
-        print(f"❌ Failed to start documentation server: {e}")
+    # Try uv first, then fallback to direct mkdocs
+    commands_to_try = [
+        ["uv", "run", "mkdocs", "serve"],
+        ["mkdocs", "serve"]
+    ]
+    
+    for cmd in commands_to_try:
+        try:
+            subprocess.run(cmd, check=True)
+            break
+        except KeyboardInterrupt:
+            print("\n👋 Documentation server stopped")
+            break
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            if cmd == commands_to_try[-1]:  # Last command failed
+                print(f"❌ Failed to start documentation server: {e}")
+            else:
+                continue  # Try next command
 
 def build_docs():
     """Build static documentation."""
-    if run_command("uv run mkdocs build", "Building static documentation"):
-        print("📁 Static documentation built in ./site/ directory")
-        return True
+    # Try uv first, then fallback to direct mkdocs
+    commands_to_try = [
+        "uv run mkdocs build",
+        "mkdocs build"
+    ]
+    
+    for cmd in commands_to_try:
+        if run_command(cmd, "Building static documentation"):
+            print("📁 Static documentation built in ./site/ directory")
+            return True
+    
     return False
 
 def main():
@@ -72,9 +120,20 @@ def main():
         print("❌ mkdocs.yml not found. Please run this script from the project root.")
         sys.exit(1)
     
-    # Install dependencies
-    # if not install_docs_dependencies():
-    #     sys.exit(1)
+    # Ask if user wants to skip dependency check
+    print("\nDo you want to check/install documentation dependencies?")
+    print("(Choose 'n' if you already have mkdocs installed)")
+    install_deps = input("Install dependencies? (y/n): ").strip().lower()
+    
+    if install_deps in ['y', 'yes', '']:
+        # Install dependencies
+        if not install_docs_dependencies():
+            print("\n⚠️  Dependency installation failed, but you can still try to continue...")
+            continue_anyway = input("Continue anyway? (y/n): ").strip().lower()
+            if continue_anyway not in ['y', 'yes']:
+                sys.exit(1)
+    else:
+        print("⏭️  Skipping dependency installation")
     
     # Ask user what they want to do
     print("\nWhat would you like to do?")

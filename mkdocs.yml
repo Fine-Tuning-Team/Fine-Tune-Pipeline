@@ -1,10 +1,10 @@
 site_name: Fine-Tune Pipeline Documentation
 site_description: A comprehensive fine-tuning pipeline for language models with evaluation and inference capabilities
 site_author: Fine-Tune Pipeline Team
-site_url: https://your-username.github.io/Fine-Tune-Pipeline
+site_url: https://Fine-Tuning-Team.github.io/Fine-Tune-Pipeline
 
 repo_name: Fine-Tune-Pipeline
-repo_url: https://github.com/your-username/Fine-Tune-Pipeline
+repo_url: https://github.com/Fine-Tuning-Team/Fine-Tune-Pipeline
 edit_uri: edit/main/docs/
 
 theme:
@@ -60,7 +60,7 @@ markdown_extensions:
       custom_fences:
         - name: mermaid
           class: mermaid
-          format: !!python/name:pymdownx.superfences.fence_code_format
+          format: pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.tasklist:
@@ -108,4 +108,4 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/your-username/Fine-Tune-Pipeline
+      link: https://github.com/Fine-Tuning-Team/Fine-Tune-Pipeline
