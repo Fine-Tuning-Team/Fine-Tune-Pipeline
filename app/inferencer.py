@@ -189,10 +189,10 @@ class Inferencer:
         ):
             response = self.generate_a_response(data_row)
             self.save_datarow_to_jsonl(self.OUTPUT_FILE_NAME, response)
-            push_dataset_to_huggingface(
-                repo_id=f"{self.config.hf_user_id}/{self.run_name}",
-                dataset_path=self.OUTPUT_FILE_NAME,
-            )
+        push_dataset_to_huggingface(
+            repo_id=f"{self.config.hf_user_id}/{self.run_name}",
+            dataset_path=self.OUTPUT_FILE_NAME,
+        )
         print(
             f"--- ✅ Responses saved to {self.OUTPUT_FILE_NAME} and pushed to HuggingFace Hub under {self.config.hf_user_id}/{self.run_name} ---"
         )
