@@ -2,7 +2,7 @@ name: Deploy to RunPod, Execute Command, and Terminate
 
 on:
   push:
-    branches: [ main ]
+    branches: [ lora-gemma ]
 
 jobs:
   deploy-and-connect:
