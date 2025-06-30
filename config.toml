@@ -44,7 +44,7 @@ use_rslora = false
 loftq_config = "null"  # Can be null
 question_part = "<|im_start|>user\n"
 answer_part = "<|im_start|>assistant\n"
-train_on_responses_only = true  # If True, only train (i.e., calculate loss) on responses, not questions
+train_on_responses_only = false  # If True, only train (i.e., calculate loss) on responses, not questions
 
 [inferencer]
 max_sequence_length = 4096
