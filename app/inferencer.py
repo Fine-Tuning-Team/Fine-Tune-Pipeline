@@ -200,14 +200,17 @@ class Inferencer:
 
 
 if __name__ == "__main__":
+    print("--- Starting the Inferencer ---")
     parser = argparse.ArgumentParser(description="Inference the language model")
     parser.add_argument("--hf-key", type=str, help="Hugging Face API token")
 
     args = parser.parse_args()
-
+    
     # Set environment variables from command-line arguments
     if args.hf_key:
         os.environ["HF_TOKEN"] = args.hf_key
-
+    print(f"--- Argparser done ---")
     inferencer = Inferencer()
+    print(f"--- Inferencer initialized with config: {inferencer.config} ---")
+    print(f"--- Starting the inference run ---")
     inferencer.run()
