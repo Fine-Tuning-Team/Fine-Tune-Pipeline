@@ -1,4 +1,4 @@
-name: Deploy to RunPod, Execute Command, and Terminate
+name: Pipeline for Gemma 3
 
 on:
   push:
