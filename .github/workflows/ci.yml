@@ -103,6 +103,7 @@ jobs:
         host: ${{ steps.get_connection.outputs.pod_ip }}
         username: root
         port: ${{ steps.get_connection.outputs.ssh_port }}
+        command_timeout: 20m
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           # Go to the workspace directory
