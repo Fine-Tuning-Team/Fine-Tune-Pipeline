@@ -2,7 +2,7 @@ name: Pipeline for Gemma 3
 
 on:
   push:
-    branches: [ lora-gemma ]
+    branches: [ main ]
 
 jobs:
   deploy-and-connect:
