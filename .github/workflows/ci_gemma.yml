@@ -1,0 +1,156 @@
+name: Deploy to RunPod, Execute Command, and Terminate
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy-and-connect:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Create RunPod Pod and Get ID
+      id: create_pod
+      run: |
+        POD_NAME="FT_GHA_$(date -u +'%Y%m%d_%H%M%S')"
+        
+        # Prepare the JSON payload with the dynamic pod name
+        JSON_DATA=$(cat <<EOF
+        {
+          "cloudType": "SECURE",
+          "computeType": "GPU",
+          "containerDiskInGb": 50,
+          "cpuFlavorPriority": "availability",
+          "dataCenterIds": [
+            "EU-RO-1", "CA-MTL-1", "EU-SE-1", "US-IL-1", "EUR-IS-1", "EU-CZ-1",
+            "US-TX-3", "EUR-IS-2", "US-KS-2", "US-GA-2", "US-WA-1", "US-TX-1",
+            "CA-MTL-3", "EU-NL-1", "US-TX-4", "US-CA-2", "US-NC-1", "OC-AU-1",
+            "US-DE-1", "EUR-IS-3", "CA-MTL-2", "AP-JP-1", "EUR-NO-1", "EU-FR-1",
+            "US-KS-3", "US-GA-1"
+          ],
+          "dataCenterPriority": "availability",
+          "dockerEntrypoint": [],
+          "dockerStartCmd": [],
+          "env": {
+              "PUBLIC_KEY": "${{ secrets.SSH_PUBLIC_KEY }}"
+          },
+          "gpuCount": 1,
+          "gpuTypePriority": "availability",
+          "interruptible": false,
+          "locked": false,
+          "minRAMPerGPU": 8,
+          "minVCPUPerGPU": 2,
+          "name": "$POD_NAME",
+          "ports": [
+            "8888/http,22/tcp"
+          ],
+          "vcpuCount": 2,
+          "volumeInGb": 20,
+          "volumeMountPath": "/workspace"
+        }
+        EOF
+        )
+
+        response=$(curl -s --request POST \
+          --url https://rest.runpod.io/v1/pods \
+          --header 'Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}' \
+          --header 'Content-Type: application/json' \
+          --data "$JSON_DATA")
+        
+        echo "API Response: $response"
+        pod_id=$(echo "$response" | jq -r '.id')
+        echo "pod_id=$pod_id" >> $GITHUB_OUTPUT
+
+    - name: Wait for Pod to be Ready and Get Connection Info
+      id: get_connection
+      run: |
+        pod_id=${{ steps.create_pod.outputs.pod_id }}
+        echo "Waiting for pod $pod_id to be ready..."
+
+        for i in {1..30}; do # Timeout after 5 minutes (30 * 10s)
+            pod_status_response=$(curl -s --request GET \
+              --url "https://rest.runpod.io/v1/pods/$pod_id" \
+              --header 'Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}')
+            
+            status=$(echo "$pod_status_response" | jq -r '.desiredStatus')
+            ip=$(echo "$pod_status_response" | jq -r '.publicIp')
+            
+            if [ "$status" == "RUNNING" ] && [ -n "$ip" ] && [ "$ip" != "null" ]; then
+                echo "Pod is running!"
+                port=$(echo "$pod_status_response" | jq -r '.portMappings["22"]')
+                
+                echo "IP Address: $ip"
+                echo "SSH Port: $port"
+
+                echo "pod_ip=$ip" >> $GITHUB_OUTPUT
+                echo "ssh_port=$port" >> $GITHUB_OUTPUT
+                exit 0
+            fi
+            
+            echo "Pod not ready yet (Status: $status, IP: $ip). Waiting 10 seconds..."
+            sleep 10
+        done
+
+        echo "Timed out waiting for pod to become ready."
+        exit 1
+
+    - name: Execute setup and run script on RunPod instance
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ steps.get_connection.outputs.pod_ip }}
+        username: root
+        port: ${{ steps.get_connection.outputs.ssh_port }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Go to the workspace directory
+          cd /workspace
+
+          # Clone the repository that triggered this workflow
+          echo "Cloning repository: ${{ github.repository }}"
+          git clone https://github.com/${{ github.repository }}.git
+
+          # Get the repository name from the full name (e.g., 'my-repo' from 'owner/my-repo')
+          REPO_NAME=$(basename ${{ github.repository }})
+          cd "$REPO_NAME"
+
+          # Checkout the 'lora' branch
+          echo "Checking out 'lora-gemma' branch..."
+          git checkout lora-gemma
+          
+          # Install the uv package manager
+          echo "Installing uv package manager..."
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+
+          # Add uv to the PATH for the current session by sourcing the correct environment file
+          source "$HOME/.local/bin/env"
+
+          # Sync dependencies using uv
+          echo "Installing dependencies with uv sync..."
+          uv sync
+
+          # Run the finetuning script with secrets
+          echo "Running the finetuning script..."
+          uv run python app/finetuner.py --wandb-key "${{ secrets.WANDB_KEY }}" --hf-key "${{ secrets.HF_TOKEN }}"
+          echo "started Inferencer"
+          uv run python app/inferencer.py --hf-key "${{ secrets.HF_TOKEN }}"
+          echo "Finetuning script finished."
+          
+    - name: Terminate RunPod Pod
+      if: always()
+      run: |
+        pod_id=${{ steps.create_pod.outputs.pod_id }}
+        if [ -z "$pod_id" ]; then
+          echo "Pod ID not found, skipping termination."
+          exit 0
+        fi
+        
+        echo "Waiting for 1/2 minutes before terminating the pod..."
+        sleep 30
+
+        echo "Terminating pod $pod_id..."
+        curl --request DELETE \
+          --url "https://rest.runpod.io/v1/pods/$pod_id" \
+          --header 'Authorization: Bearer ${{ secrets.RUNPOD_API_KEY }}'
