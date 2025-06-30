@@ -115,10 +115,18 @@ def main():
     print("📚 Fine-Tune Pipeline Documentation Setup")
     print("=" * 50)
     
-    # Check if we're in the right directory
-    if not Path("mkdocs.yml").exists():
-        print("❌ mkdocs.yml not found. Please run this script from the project root.")
+    # Check if we're in the right directory (look for mkdocs.yml in parent directory)
+    project_root = Path(__file__).parent.parent
+    mkdocs_file = project_root / "mkdocs.yml"
+    
+    if not mkdocs_file.exists():
+        print("❌ mkdocs.yml not found. Please ensure this script is in the app/ directory of the project.")
+        print(f"Looking for: {mkdocs_file}")
         sys.exit(1)
+    
+    # Change to project root directory for mkdocs commands
+    os.chdir(project_root)
+    print(f"📁 Working directory: {project_root}")
     
     # Ask if user wants to skip dependency check
     print("\nDo you want to check/install documentation dependencies?")
