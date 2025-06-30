@@ -73,6 +73,10 @@ class FineTune:
             random_state=self.config.seed,
             use_rslora=self.config.use_rslora,
             loftq_config=self.config.loftq_config,
+            finetune_vision_layers=False,
+            finetune_language_layers=True,
+            finetune_attention_modules=True,
+            finetune_mlp_modules=True,
         )
 
     def convert_a_data_row_to_conversation_format(self, data_row) -> dict:
