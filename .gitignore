@@ -1,3 +1,7 @@
+# Project spedific files
+sample-data/
+tests/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
