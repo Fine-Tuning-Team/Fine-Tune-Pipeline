@@ -19,8 +19,8 @@ To be used on `config.toml` for train_on_responses_only part.
 ## Gemma 3
 
 ```toml
-    question_part = "<start_of_turn>user\n",
-    answer_part = "<start_of_turn>model\n",
+    question_part = "<start_of_turn>user\n"
+    answer_part = "<start_of_turn>model\n"
 ```
 
 ## Llama 3.2
@@ -28,15 +28,15 @@ To be used on `config.toml` for train_on_responses_only part.
 Should work for 3.1 as well (I think).
 
 ```toml
-    question_part = "<|start_header_id|>user<|end_header_id|>\n\n",
-    answer_part = "<|start_header_id|>assistant<|end_header_id|>\n\n",
+    question_part = "<|start_header_id|>user<|end_header_id|>\n\n"
+    answer_part = "<|start_header_id|>assistant<|end_header_id|>\n\n"
 ```
 
 ## Phi 4
 
 ```toml
-    question_part="<|im_start|>user<|im_sep|>",
-    answer_part="<|im_start|>assistant<|im_sep|>",
+    question_part="<|im_start|>user<|im_sep|>"
+    answer_part="<|im_start|>assistant<|im_sep|>"
 ```
 
 ---

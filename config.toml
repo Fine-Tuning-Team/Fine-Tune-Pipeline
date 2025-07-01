@@ -42,8 +42,8 @@ use_gradient_checkpointing = "unsloth"  # Can be true, false, or "unsloth"
 use_flash_attention = true
 use_rslora = false
 loftq_config = "null"  # Can be null
-question_part = "<start_of_turn>user\n",
-answer_part = "<start_of_turn>model\n",
+question_part = "<start_of_turn>user\n"
+answer_part = "<start_of_turn>model\n"
 train_on_responses_only = false  # If True, only train (i.e., calculate loss) on responses, not questions
 
 [inferencer]
