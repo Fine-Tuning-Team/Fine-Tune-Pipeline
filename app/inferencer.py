@@ -119,7 +119,7 @@ class Inferencer:
         untokenized_msg = self.apply_chat_template_to_conversation(conversation)
 
         tokenized_input = self.tokenizer(
-            untokenized_msg, return_tensors="pt", add_generation_prompt=True
+            untokenized_msg, return_tensors="pt"
         ).to(self.model.device)  # This will tokenize the input and prepare it for the model
         input_length = tokenized_input.input_ids.shape[-1]
 
