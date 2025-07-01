@@ -190,7 +190,7 @@ class Inferencer:
         # Model response generation
         print("--- ✅ Starting inference on the testing dataset. ---")
         for data_row in tqdm(
-            testing_dataset[:5], desc="Generating responses", unit="data_row"
+            testing_dataset, desc="Generating responses", unit="data_row"
         ):
             response = self.generate_a_response(data_row)
             self.save_datarow_to_jsonl(self.OUTPUT_FILE_NAME, response)
