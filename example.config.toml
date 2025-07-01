@@ -1,5 +1,8 @@
+# This is an example configuration file for the Fine-Tune Pipeline.
+# Copy this file to config.toml (make new file at root, if not exists)
+
 [fine_tuner]
-base_model_id = "unsloth/gemma-3-4b-it"  # Hugging Face model ID or local path
+base_model_id = "model-name"  # Hugging Face model ID or local path
 is_multimodel = false  # Set to true if the model is multimodal (vision + language)
 finetune_vision_layers = false  # Not applicable for non-multimodal models
 finetune_language_layers = false  # Not applicable for non-multimodal models
@@ -13,19 +16,19 @@ full_finetuning = false
 rank = 16
 lora_alpha = 16
 lora_dropout = 0.1
-target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+target_modules = ["list", "of", "target", "modules"]  # Specify target modules for LoRA
 bias = "none"
-training_data_id = "rtweera/simple_implicit_n_qa_results_v2"  # Hugging Face dataset ID or local path
+training_data_id = "your-huggingface-acc/training-dataset"  # Hugging Face dataset ID or local path
 validation_data_id = "null"  # Optional
 dataset_num_proc = 4  # Number of processes for dataset loading
-question_column = "question"
-ground_truth_column = "answer"
-system_prompt_column = "null"  # Optional, can be null
+question_column = "question-column-name"
+ground_truth_column = "answer-column-name"
+system_prompt_column = "system-column-name-or-null"  # Optional, can be null
 system_prompt_override_text = "null"  # Optional, can be null
 run_name = "null"  # Leave null for random name; used for both wandb and mlflow
 run_name_prefix = "" 
 run_name_suffix = ""
-wandb_project_name = "fine-tuning-project-ci-cd"
+wandb_project_name = "wandb-project-name"  # Name of the Weights & Biases project
 device_train_batch_size = 4
 device_validation_batch_size = 4
 grad_accumulation = 4
@@ -47,7 +50,7 @@ use_gradient_checkpointing = "unsloth"  # Can be true, false, or "unsloth"
 use_flash_attention = true
 use_rslora = false
 loftq_config = "null"  # Can be null
-question_part = "<start_of_turn>user\n"
+question_part = "<start_of_turn>user\n" # Find these in CHAT_MARKERS.md
 answer_part = "<start_of_turn>model\n"
 train_on_responses_only = false  # If True, only train (i.e., calculate loss) on responses, not questions
 
@@ -56,22 +59,22 @@ max_sequence_length = 4096
 dtype = "null"  # Can be "float16", "bfloat16", or null for auto
 load_in_4bit = true
 load_in_8bit = false
-testing_data_id = "rtweera/testing-testset"  # Same as fine_tuner or different test set
-question_column = "question"
-ground_truth_column = "answer"
+testing_data_id = "your-huggingface-acc/testing-dataset"  # Same as fine_tuner or different test set
+question_column = "question-column-name"
+ground_truth_column = "answer-column-name"
 system_prompt_column = "null"  # Optional, can be null
 system_prompt_override_text = "null"  # Optional, can be null
 max_new_tokens = 512
 use_cache = true
 temperature = 0.7
 min_p = 0.1
-hf_user_id = "rtweera"  # Used to generate model path
+hf_user_id = "your-huggingface-account"  # Used to generate model path
 run_name = "null"  # Leave null for random name; used for both dataset and mlflow
 run_name_prefix = "" 
 run_name_suffix = ""
 
 [evaluator]
-metrics = ["bleu_score", "rouge_score", "factual_correctness"]  # List of evaluation metrics
+metrics = ["list", "of", "supported", "metrics"]  # List of evaluation metrics: Find in SUPPORTED_METRICS.md
 # LIST OF SUPPORTED METRICS:
 # "bleu_score", "rouge_score", "factual_correctness", "semantic_similarity", "answer_accuracy", "answer_relevancy", "answer_correctness"
 llm = "gpt-4o-mini"  # LLM for evaluation
