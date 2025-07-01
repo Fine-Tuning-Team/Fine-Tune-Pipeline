@@ -315,6 +315,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fine-tune a language model")
     parser.add_argument("--wandb-key", type=str, help="Weights & Biases API key")
     parser.add_argument("--hf-key", type=str, help="Hugging Face API token")
+    parser.add_argument("--mlflow-username", type=str, help="MLflow username")
+    parser.add_argument("--mlflow-password", type=str, help="MLflow password")
 
     args = parser.parse_args()
 
@@ -324,6 +326,10 @@ if __name__ == "__main__":
 
     if args.hf_key:
         os.environ["HF_TOKEN"] = args.hf_key
+
+    if args.mlflow_username and args.mlflow_password:
+        os.environ["MLFLOW_USERNAME"] = args.mlflow_username
+        os.environ["MLFLOW_PASSWORD"] = args.mlflow_password
 
     tuner = FineTune()
     tuner.run()
