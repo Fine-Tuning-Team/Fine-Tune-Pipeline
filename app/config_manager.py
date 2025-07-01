@@ -206,6 +206,21 @@ class EvaluatorConfig:
         return cls(**section)
 
 
+@dataclass
+class MLFlowConfig:
+    tracking_uri: str
+    experiment_name: str
+    run_name: str | None
+    run_name_prefix: str
+    run_name_suffix: str
+
+    @classmethod
+    def from_config(cls, config_manager: ConfigManager):
+        config_manager.validate_dataclass_config("mlflow", cls)
+        section = config_manager.get_section("mlflow")
+        return cls(**section)
+
+
 # Global config instance (singleton pattern)
 _config_manager = None
 
