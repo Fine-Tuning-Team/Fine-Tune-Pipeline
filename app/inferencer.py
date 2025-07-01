@@ -80,16 +80,16 @@ class Inferencer:
 
     def apply_chat_template_to_conversation(self, conversation):
         """Apply the chat template to a conversation.
-        This method tokenizes the conversation and prepares it for model input.
+        This method applies the chat template to the conversation and prepares it for model input.
         """
         if self.tokenizer is None or self.model is None:
             raise ValueError(
                 "Model or tokenizer is not initialized. Please load the model and tokenizer first."
             )
-        tokenized_msg = self.tokenizer.apply_chat_template(
-            conversation, add_generation_prompt=True, tokenize=True, return_tensors="pt"
-        ).to(self.model.device)
-        return tokenized_msg
+        untokenized_msg = self.tokenizer.apply_chat_template(
+            conversation, add_generation_prompt=True, tokenize=False
+        ) # BUG
+        return untokenized_msg
 
     def generate_a_response(self, data_row):
         """
@@ -116,17 +116,22 @@ class Inferencer:
             )
 
         conversation = self.convert_a_data_row_to_conversation_format(data_row)
-        tokenized_msg = self.apply_chat_template_to_conversation(conversation)
+        untokenized_msg = self.apply_chat_template_to_conversation(conversation)
+
+        tokenized_input = self.tokenizer(
+            untokenized_msg, return_tensors="pt"
+        ).to(self.model.device)  # This will tokenize the input and prepare it for the model
+        input_length = tokenized_input.input_ids.shape[-1]
 
         output_ids = self.model.generate(
-            input_ids=tokenized_msg,
+            **tokenized_input,
             max_new_tokens=self.config.max_new_tokens,
             use_cache=self.config.use_cache,
             temperature=self.config.temperature,
             min_p=self.config.min_p,
         )
         model_response = self.tokenizer.decode(
-            output_ids[0][tokenized_msg.shape[-1] :], skip_special_tokens=True
+            output_ids[0][input_length :], skip_special_tokens=True
         )
         # output_ids[0][tokenized_msg.shape[-1]:] --> output_ids[0] is the generated response, and we skip the user and system parts by slicing from the end of the tokenized message.
         output_data_row = {

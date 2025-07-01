@@ -62,8 +62,17 @@ class FineTune:
             raise ValueError(
                 "Model and tokenizer must be loaded before converting to PEFT model."
             )
+        kwargs = {}
+        if self.config.is_multimodel:
+            kwargs = {
+                "finetune_vision_layers" : self.config.finetune_vision_layers,
+                "finetune_language_layers":  self.config.finetune_language_layers,
+                "finetune_attention_modules": self.config.finetune_attention_modules,
+                "finetune_mlp_modules": self.config.finetune_mlp_modules,
+            }
         return FastLanguageModel.get_peft_model(
             self.model,
+            **kwargs,   # type: ignore
             r=self.config.rank,
             target_modules=self.config.target_modules,
             lora_alpha=self.config.lora_alpha,
@@ -311,6 +320,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Fine-tune a language model")
     parser.add_argument("--wandb-key", type=str, help="Weights & Biases API key")
     parser.add_argument("--hf-key", type=str, help="Hugging Face API token")
+    parser.add_argument("--mlflow-username", type=str, help="MLflow username")
+    parser.add_argument("--mlflow-password", type=str, help="MLflow password")
 
     args = parser.parse_args()
 
@@ -320,6 +331,10 @@ if __name__ == "__main__":
 
     if args.hf_key:
         os.environ["HF_TOKEN"] = args.hf_key
+
+    if args.mlflow_username and args.mlflow_password:
+        os.environ["MLFLOW_USERNAME"] = args.mlflow_username
+        os.environ["MLFLOW_PASSWORD"] = args.mlflow_password
 
     tuner = FineTune()
     tuner.run()

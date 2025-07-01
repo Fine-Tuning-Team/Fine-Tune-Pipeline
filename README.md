@@ -25,27 +25,32 @@ Complete documentation is available at: **[https://your-username.github.io/Fine-
 ## 🏃 Quick Start
 
 1. **Install dependencies**:
+
    ```bash
    uv sync
    ```
 
 2. **Set up API keys** (see [Environment Setup](https://your-username.github.io/Fine-Tune-Pipeline/getting-started/environment-setup/)):
+
    ```bash
    export HF_TOKEN="your_hf_token"
    export WANDB_TOKEN="your_wandb_key"
    ```
 
 3. **Run fine-tuning**:
+
    ```bash
    uv run app/finetuner.py --hf-key "your_hf_token" --wandb-key "your_wandb_key"
    ```
 
 4. **Run inference**:
+
    ```bash
    uv run app/inferencer.py --hf-key "your_hf_token"
    ```
 
 5. **Evaluate results**:
+
    ```bash
    uv run app/evaluator.py --openai-key "your_openai_key"
    ```

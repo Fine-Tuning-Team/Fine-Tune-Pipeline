@@ -108,6 +108,11 @@ class FineTunerConfig:
     base_model_id: str  # Hugging Face model ID or local path
     # TODO: Do we need a description? Like a model description? or run description?
     # fine_tuned_model_id: str -> Let's create a random id from mlflow and push
+    is_multimodel: bool  # True if the model is multimodal (vision + language)
+    finetune_vision_layers: bool  # Whether to finetune vision layers
+    finetune_language_layers: bool  # Whether to finetune language layers
+    finetune_attention_modules: bool  # Whether to finetune attention modules
+    finetune_mlp_modules: bool  # Whether to finetune MLP modules
     max_sequence_length: int
     dtype: int | None  # Can be null
     load_in_4bit: bool
@@ -203,6 +208,21 @@ class EvaluatorConfig:
     def from_config(cls, config_manager: ConfigManager):
         config_manager.validate_dataclass_config("evaluator", cls)
         section = config_manager.get_section("evaluator")
+        return cls(**section)
+
+
+@dataclass
+class MLFlowConfig:
+    tracking_uri: str
+    experiment_name: str
+    run_name: str | None
+    run_name_prefix: str
+    run_name_suffix: str
+
+    @classmethod
+    def from_config(cls, config_manager: ConfigManager):
+        config_manager.validate_dataclass_config("mlflow", cls)
+        section = config_manager.get_section("mlflow")
         return cls(**section)
 
 
