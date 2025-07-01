@@ -62,8 +62,17 @@ class FineTune:
             raise ValueError(
                 "Model and tokenizer must be loaded before converting to PEFT model."
             )
+        kwargs = {}
+        if self.config.is_multimodel:
+            kwargs = {
+                "finetune_vision_layers" : self.config.finetune_vision_layers,
+                "finetune_language_layers":  self.config.finetune_language_layers,
+                "finetune_attention_modules": self.config.finetune_attention_modules,
+                "finetune_mlp_modules": self.config.finetune_mlp_modules,
+            }
         return FastLanguageModel.get_peft_model(
             self.model,
+            **kwargs,   # type: ignore
             r=self.config.rank,
             target_modules=self.config.target_modules,
             lora_alpha=self.config.lora_alpha,

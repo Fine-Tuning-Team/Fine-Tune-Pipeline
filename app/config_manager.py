@@ -108,6 +108,11 @@ class FineTunerConfig:
     base_model_id: str  # Hugging Face model ID or local path
     # TODO: Do we need a description? Like a model description? or run description?
     # fine_tuned_model_id: str -> Let's create a random id from mlflow and push
+    is_multimodel: bool  # True if the model is multimodal (vision + language)
+    finetune_vision_layers: bool  # Whether to finetune vision layers
+    finetune_language_layers: bool  # Whether to finetune language layers
+    finetune_attention_modules: bool  # Whether to finetune attention modules
+    finetune_mlp_modules: bool  # Whether to finetune MLP modules
     max_sequence_length: int
     dtype: int | None  # Can be null
     load_in_4bit: bool
