@@ -1,6 +1,6 @@
 # Documentation Setup Summary
 
-This document summarizes the comprehensive documentation system that has been created for your Fine-Tune Pipeline.
+This is a summary for the comprehensive documentation done for the Fine-Tune Pipeline.
 
 ## 📚 What Has Been Created
 
@@ -17,7 +17,7 @@ A professional documentation website with:
 
 ### 2. Documentation Structure
 
-```
+```plaintext
 docs/
 ├── index.md                    # Homepage with project overview
 ├── getting-started/           # Installation and setup guides
@@ -59,6 +59,7 @@ docs/
 ### Local Development
 
 1. **Serve documentation locally**:
+
    ```bash
    python docs_server.py
    # or
@@ -66,11 +67,13 @@ docs/
    ```
 
 2. **Build static documentation**:
+
    ```bash
    uv run mkdocs build
    ```
 
 3. **Install docs dependencies**:
+
    ```bash
    uv sync --extra docs
    ```
@@ -120,20 +123,24 @@ To customize the documentation:
 ## 🔧 Configuration Files Created
 
 ### mkdocs.yml
+
 - Complete MkDocs configuration
 - Material theme setup
 - Plugin configuration
 - Navigation structure
 
 ### .github/workflows/docs.yml
+
 - GitHub Actions workflow for automatic deployment
 - Builds and deploys to GitHub Pages on every push
 
 ### pyproject.toml (updated)
+
 - Added documentation dependencies
 - Optional dependency group for docs
 
 ### docs_server.py
+
 - Interactive documentation server script
 - Dependency installation helper
 - Local development tool
@@ -141,27 +148,32 @@ To customize the documentation:
 ## 📝 Content Overview
 
 ### Getting Started (3 pages)
+
 - **Installation**: Complete setup instructions for Windows/Mac/Linux
 - **Environment Setup**: API keys, authentication, GPU setup
 - **Quick Start**: 30-minute tutorial from zero to trained model
 
 ### Configuration (4 pages)
+
 - **Overview**: Configuration system explanation
 - **Fine-Tuner**: Complete parameter reference with examples
 - **Inferencer**: Inference configuration options
 - **Evaluator**: Evaluation metrics and setup
 
 ### Components (3 pages)
+
 - **Fine-Tuner**: Architecture, methods, usage patterns
 - **Inferencer**: Inference pipeline details
 - **Evaluator**: Evaluation system documentation
 
 ### Tutorials (3 pages)
+
 - **Basic Fine-Tuning**: Complete beginner project
 - **Advanced Configuration**: Expert-level features
 - **CI/CD Integration**: Automation setup
 
 ### Reference (3 pages)
+
 - **API Reference**: Auto-generated API docs
 - **Troubleshooting**: Common issues and solutions
 - **Contributing**: Development guidelines
