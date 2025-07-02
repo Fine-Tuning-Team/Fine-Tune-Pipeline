@@ -1,0 +1,9 @@
+# Supported Metrics for Evaluation in RAGAS
+
+semantic_similarity
+answer_accuracy
+factual_correctness
+rouge_score
+bleu_score
+answer_correctness
+answer_relevancy
