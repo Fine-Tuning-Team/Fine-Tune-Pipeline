@@ -1,4 +1,4 @@
-name: Deploy to RunPod, Execute Command, and Terminate
+name: Pipeline for Qwen2.5 LoRA
 
 on:
   push:
