@@ -27,6 +27,7 @@ from ragas.metrics import (
 # Local imports
 from config_manager import get_config_manager, EvaluatorConfig
 from utils import setup_run_name, setup_openai_key, login_huggingface
+from mlflow_reporter import MLFlowReporter
 
 
 class Evaluator:
@@ -39,6 +40,7 @@ class Evaluator:
         self.input_dataset: Dataset | None = None
         self.metrics: list[Metric] | None = None
         self.evaluation_results: EvaluationResult | None = None
+        self.mlflow_reporter = None
 
         # NOTE: IF CHANGED, UPDATE THE **INFERENCER** AS WELL
         self.INPUT_FILE_NAME = "inferencer_output.jsonl"
@@ -197,48 +199,87 @@ class Evaluator:
         """
         Run the evaluation process.
         """
-        # Login to Hugging Face
-        login_huggingface()
+        # Initialize MLflow reporter
+        self.mlflow_reporter = MLFlowReporter()
+        
+        with self.mlflow_reporter:
+            try:
+                # Log environment info and configuration
+                self.mlflow_reporter.log_environment_info()
+                self.mlflow_reporter.log_evaluator_config(self.config)
+                self.mlflow_reporter.log_pipeline_info("evaluation", "started", "Starting evaluation process")
+                
+                # Login to Hugging Face
+                login_huggingface()
 
-        # Setup openai key
-        setup_openai_key()
+                # Setup openai key
+                setup_openai_key()
 
-        # Setup run name
-        self.run_name = setup_run_name(
-            name=self.config.run_name,
-            prefix=self.config.run_name_prefix,
-            suffix=self.config.run_name_suffix,
-        )
-        print(f"--- ✅ Run name set to: {self.run_name} ---")
+                # Setup run name
+                self.run_name = setup_run_name(
+                    name=self.config.run_name,
+                    prefix=self.config.run_name_prefix,
+                    suffix=self.config.run_name_suffix,
+                )
+                print(f"--- ✅ Run name set to: {self.run_name} ---")
 
-        # Load the Ragas metrics functions based on the configuration
-        self.set_ragas_metrics()
-        print(f"--- ✅ Loaded Ragas metrics: {self.config.metrics} ---")
+                # Load the Ragas metrics functions based on the configuration
+                self.set_ragas_metrics()
+                print(f"--- ✅ Loaded Ragas metrics: {self.config.metrics} ---")
 
-        # Load embeddings and LLM
-        self.load_embeddings()
-        self.load_llm()
-        print(
-            f"--- ✅ Loaded embeddings model: {self.config.embedding} and LLM: {self.config.llm} ---"
-        )
+                # Load embeddings and LLM
+                self.load_embeddings()
+                self.load_llm()
+                print(
+                    f"--- ✅ Loaded embeddings model: {self.config.embedding} and LLM: {self.config.llm} ---"
+                )
 
-        # Load the inferencer output dataset
-        self.load_inferencer_output()
-        print(
-            f"--- ✅ Loaded inferencer output dataset from {self.INPUT_FILE_NAME} ---"
-        )
+                # Load the inferencer output dataset
+                self.load_inferencer_output()
+                dataset_size = len(self.input_dataset) if self.input_dataset else 0
+                self.mlflow_reporter.log_metric("evaluation_dataset_size", dataset_size)
+                print(
+                    f"--- ✅ Loaded inferencer output dataset from {self.INPUT_FILE_NAME} ---"
+                )
 
-        # Evaluate the dataset using the specified metrics
-        self.evaluate()
-        print(
-            f"--- ✅ Evaluation completed with results: {self.get_summary_results()} ---"
-        )
+                # Evaluate the dataset using the specified metrics
+                import time
+                start_time = time.time()
+                self.evaluate()
+                end_time = time.time()
+                evaluation_time = end_time - start_time
+                
+                # Log evaluation metrics
+                if self.evaluation_results:
+                    self.mlflow_reporter.log_evaluator_metrics(self.evaluation_results)
+                
+                # Log evaluation timing
+                self.mlflow_reporter.log_metric("evaluation_time_seconds", evaluation_time)
+                if dataset_size > 0:
+                    self.mlflow_reporter.log_metric("evaluation_samples_per_second", dataset_size / evaluation_time)
+                
+                print(
+                    f"--- ✅ Evaluation completed with results: {self.get_summary_results()} ---"
+                )
 
-        # Save results
-        self.save_results()
-        print(
-            f"--- ✅ Results saved to {self.OUTPUT_FILE_NAME_DETAILED} and {self.OUTPUT_FILE_NAME_SUMMARY} ---"
-        )
+                # Save results
+                self.save_results()
+                
+                # Log evaluation artifacts
+                self.mlflow_reporter.log_evaluator_artifacts(
+                    self.OUTPUT_FILE_NAME_SUMMARY, 
+                    self.OUTPUT_FILE_NAME_DETAILED
+                )
+                self.mlflow_reporter.log_pipeline_info("evaluation", "completed", "Evaluation completed successfully")
+                
+                print(
+                    f"--- ✅ Results saved to {self.OUTPUT_FILE_NAME_DETAILED} and {self.OUTPUT_FILE_NAME_SUMMARY} ---"
+                )
+                
+            except Exception as e:
+                if self.mlflow_reporter:
+                    self.mlflow_reporter.log_pipeline_info("evaluation", "failed", str(e))
+                raise
 
 
 if __name__ == "__main__":

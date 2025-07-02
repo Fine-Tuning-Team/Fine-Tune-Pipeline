@@ -15,6 +15,8 @@ from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 # Local imports
 from config_manager import get_config_manager, FineTunerConfig
 from utils import load_huggingface_dataset, login_huggingface, setup_run_name
+from mlflow_reporter import MLFlowReporter
+from mlflow_callback import MLflowCallback
 
 
 class FineTune:
@@ -30,6 +32,7 @@ class FineTune:
         self.model = None
         self.tokenizer = None
         self.run_name = None
+        self.mlflow_reporter = None
 
         self.MODEL_LOCAL_OUTPUT_DIR = "./models/fine_tuned"
 
@@ -166,6 +169,18 @@ class FineTune:
         wandb_run_name = self.run_name
         wandb.init(project=self.config.wandb_project_name, name=wandb_run_name)
 
+    def handle_mlflow_setup(self):
+        """
+        Handle the setup for MLflow logging.
+        """
+        self.mlflow_reporter = MLFlowReporter()
+        self.mlflow_reporter.start_run(run_name=self.run_name)
+        
+        # Log environment info and fine-tuner configuration
+        self.mlflow_reporter.log_environment_info()
+        self.mlflow_reporter.log_finetuner_config(self.config)
+        self.mlflow_reporter.log_pipeline_info("finetuning", "started", "Starting fine-tuning process")
+
     def get_columns_to_remove(
         self,
         dataset: Dataset | DatasetDict | IterableDatasetDict | IterableDataset,
@@ -263,8 +278,11 @@ class FineTune:
         print(f"Run name set to: {self.run_name}")
         self.handle_wandb_setup()
         print("--- ✅ Weights & Biases setup completed. ---")
+        self.handle_mlflow_setup()
+        print("--- ✅ MLflow setup completed. ---")
 
         # Training
+        mlflow_callback = MLflowCallback(self.mlflow_reporter)
         trainer = SFTTrainer(
             model=self.model,
             tokenizer=self.tokenizer,  # type: ignore
@@ -297,7 +315,7 @@ class FineTune:
                 push_to_hub=self.config.push_to_hub,
                 hub_model_id=self.run_name,
             ),
-            callbacks=[],
+            callbacks=[mlflow_callback],
         )
         print("--- ✅ Trainer initialized successfully. ---")
         if self.config.train_on_responses_only:
@@ -307,13 +325,31 @@ class FineTune:
                 response_part=self.config.answer_part,
             )
         print("--- ✅ Starting training... ---")
-        trainer_stats = trainer.train()  # type: ignore
-        print(f"\n\n--- ✅ Training completed with stats: {trainer_stats} ---")
-        print(
-            f"--- ✅ Model and tokenizer saved to {self.MODEL_LOCAL_OUTPUT_DIR} locally and to Hugging Face Hub with ID: {self.run_name} ---"
-        )
-        print("--- ✅ Fine-tuning completed successfully. ---")
-        return trainer_stats
+        try:
+            trainer_stats = trainer.train()  # type: ignore
+            print(f"\n\n--- ✅ Training completed with stats: {trainer_stats} ---")
+            
+            # Log training metrics and artifacts to MLflow
+            if self.mlflow_reporter:
+                self.mlflow_reporter.log_finetuner_metrics(trainer_stats)
+                self.mlflow_reporter.log_finetuner_artifacts(self.MODEL_LOCAL_OUTPUT_DIR)
+                self.mlflow_reporter.log_pipeline_info("finetuning", "completed", "Fine-tuning completed successfully")
+                
+            print(
+                f"--- ✅ Model and tokenizer saved to {self.MODEL_LOCAL_OUTPUT_DIR} locally and to Hugging Face Hub with ID: {self.run_name} ---"
+            )
+            print("--- ✅ Fine-tuning completed successfully. ---")
+            return trainer_stats
+            
+        except Exception as e:
+            # Log error to MLflow if available
+            if self.mlflow_reporter:
+                self.mlflow_reporter.log_pipeline_info("finetuning", "failed", str(e))
+            raise
+        finally:
+            # End MLflow run
+            if self.mlflow_reporter:
+                self.mlflow_reporter.end_run()
 
 
 if __name__ == "__main__":

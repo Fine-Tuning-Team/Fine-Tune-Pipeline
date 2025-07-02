@@ -14,6 +14,7 @@ from utils import (
     setup_run_name,
     login_huggingface,
 )
+from mlflow_reporter import MLFlowReporter
 
 
 class Inferencer:
@@ -23,6 +24,7 @@ class Inferencer:
         # TODO: Load the model name from the previous finetuner step trained model iD
         self.model = None
         self.tokenizer = None
+        self.mlflow_reporter = None
 
         # NOTE: IF CHANGED, UPDATE THE **FINETUNER** AS WELL
         self.MODEL_LOCAL_INPUT_DIR = "./models/fine_tuned"
@@ -159,49 +161,98 @@ class Inferencer:
         """
         Generate responses for each user prompt in the dataset and return as a list of dicts.
         """
-        # Login to HF
-        login_huggingface()
-        print("--- ✅ Login to Hugging Face Hub successful. ---")
+        # Initialize MLflow reporter
+        self.mlflow_reporter = MLFlowReporter()
+        
+        with self.mlflow_reporter:
+            try:
+                # Log environment info and configuration
+                self.mlflow_reporter.log_environment_info()
+                self.mlflow_reporter.log_inferencer_config(self.config)
+                self.mlflow_reporter.log_pipeline_info("inference", "started", "Starting inference process")
+                
+                # Login to HF
+                login_huggingface()
+                print("--- ✅ Login to Hugging Face Hub successful. ---")
 
-        # Load the dataset
-        testing_dataset = load_huggingface_dataset(self.config.testing_data_id)
-        print("--- ✅ Loaded testing dataset successfully. ---")
+                # Load the dataset
+                testing_dataset = load_huggingface_dataset(self.config.testing_data_id)
+                # Get dataset size safely
+                try:
+                    dataset_size = len(testing_dataset)  # type: ignore
+                except (TypeError, AttributeError):
+                    # Handle IterableDataset case - count during processing
+                    dataset_size = 0
+                print("--- ✅ Loaded testing dataset successfully. ---")
 
-        # Load the model
-        self.model, self.tokenizer = FastLanguageModel.from_pretrained(
-            model_name=self.MODEL_LOCAL_INPUT_DIR,
-            max_seq_length=self.config.max_sequence_length,
-            dtype=self.config.dtype,
-            load_in_4bit=self.config.load_in_4bit,
-            load_in_8bit=self.config.load_in_8bit,
-            token=os.getenv("HF_TOKEN"),
-        )
-        print("--- ✅ Loaded model and tokenizer successfully. ---")
-        FastLanguageModel.for_inference(self.model)
-        print("--- ✅ Model set for inference. ---")
+                # Load the model
+                self.model, self.tokenizer = FastLanguageModel.from_pretrained(
+                    model_name=self.MODEL_LOCAL_INPUT_DIR,
+                    max_seq_length=self.config.max_sequence_length,
+                    dtype=self.config.dtype,
+                    load_in_4bit=self.config.load_in_4bit,
+                    load_in_8bit=self.config.load_in_8bit,
+                    token=os.getenv("HF_TOKEN"),
+                )
+                print("--- ✅ Loaded model and tokenizer successfully. ---")
+                FastLanguageModel.for_inference(self.model)
+                print("--- ✅ Model set for inference. ---")
 
-        self.run_name = setup_run_name(
-            name=self.config.run_name,
-            prefix=self.config.run_name_prefix,
-            suffix=self.config.run_name_suffix,
-        )
-        print(f"--- ✅ Run name set to: {self.run_name} ---")
+                self.run_name = setup_run_name(
+                    name=self.config.run_name,
+                    prefix=self.config.run_name_prefix,
+                    suffix=self.config.run_name_suffix,
+                )
+                print(f"--- ✅ Run name set to: {self.run_name} ---")
 
-        # Model response generation
-        print("--- ✅ Starting inference on the testing dataset. ---")
-        for data_row in tqdm(
-            testing_dataset, desc="Generating responses", unit="data_row"
-        ):
-            response = self.generate_a_response(data_row)
-            self.save_datarow_to_jsonl(self.OUTPUT_FILE_NAME, response)
-        push_dataset_to_huggingface(
-            repo_id=f"{self.config.hf_user_id}/{self.run_name}",
-            dataset_path=self.OUTPUT_FILE_NAME,
-        )
-        print(
-            f"--- ✅ Responses saved to {self.OUTPUT_FILE_NAME} and pushed to HuggingFace Hub under {self.config.hf_user_id}/{self.run_name} ---"
-        )
-        print("--- ✅ Inference completed successfully. ---")
+                # Model response generation
+                print("--- ✅ Starting inference on the testing dataset. ---")
+                import time
+                start_time = time.time()
+                
+                processed_samples = 0
+                for data_row in tqdm(
+                    testing_dataset, desc="Generating responses", unit="data_row"
+                ):
+                    response = self.generate_a_response(data_row)
+                    self.save_datarow_to_jsonl(self.OUTPUT_FILE_NAME, response)
+                    processed_samples += 1
+                    
+                    # Update dataset_size if it was initially 0 (for IterableDataset)
+                    if dataset_size == 0:
+                        dataset_size = processed_samples
+                    
+                    # Log progress periodically
+                    if processed_samples % 100 == 0:
+                        self.mlflow_reporter.log_metric("processed_samples", processed_samples)
+                
+                end_time = time.time()
+                inference_time = end_time - start_time
+                
+                # Log inference metrics
+                final_dataset_size = max(dataset_size, processed_samples)
+                self.mlflow_reporter.log_inferencer_metrics(final_dataset_size, inference_time)
+                if inference_time > 0:
+                    self.mlflow_reporter.log_metric("samples_per_second", final_dataset_size / inference_time)
+                
+                push_dataset_to_huggingface(
+                    repo_id=f"{self.config.hf_user_id}/{self.run_name}",
+                    dataset_path=self.OUTPUT_FILE_NAME,
+                )
+                
+                # Log inference artifacts
+                self.mlflow_reporter.log_inferencer_artifacts(self.OUTPUT_FILE_NAME)
+                self.mlflow_reporter.log_pipeline_info("inference", "completed", "Inference completed successfully")
+                
+                print(
+                    f"--- ✅ Responses saved to {self.OUTPUT_FILE_NAME} and pushed to HuggingFace Hub under {self.config.hf_user_id}/{self.run_name} ---"
+                )
+                print("--- ✅ Inference completed successfully. ---")
+                
+            except Exception as e:
+                if self.mlflow_reporter:
+                    self.mlflow_reporter.log_pipeline_info("inference", "failed", str(e))
+                raise
 
 
 if __name__ == "__main__":
