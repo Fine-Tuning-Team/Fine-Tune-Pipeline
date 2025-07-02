@@ -1,4 +1,5 @@
 [fine_tuner]
+
 base_model_id = "unsloth/gemma-3-4b-it"  # Hugging Face model ID or local path
 is_multimodel = false  # Set to true if the model is multimodal (vision + language)
 finetune_vision_layers = false  # Not applicable for non-multimodal models
