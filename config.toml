@@ -8,7 +8,7 @@ finetune_mlp_modules = false  # Not applicable for non-multimodal models
 max_sequence_length = 4096
 dtype = "null"  # Can be "float16", "bfloat16", or null for auto
 load_in_4bit = true
-load_in_8bit = false
+load_in_8bit = false    
 full_finetuning = false
 rank = 16
 lora_alpha = 16
@@ -81,8 +81,8 @@ run_name_prefix = ""
 run_name_suffix = ""
 
 [mlflow]
-tracking_uri = "http://localhost:5000"  # MLflow tracking server URI
-experiment_name = "fine-tuning-experiment"  # MLflow experiment name
-run_name = "null"  # Leave null for auto-generated name
+tracking_uri = "https://33008a58-e51f-4442-994c-c4841203c6fb.e1-us-east-azure.choreoapps.dev"  # MLflow tracking server URI
+experiment_name = "full-pipeline-experiment"  # MLflow experiment name
+run_name = "v0.0.0"  # Leave null for auto-generated name
 run_name_prefix = ""
 run_name_suffix = ""  # Suffix to append to run name
