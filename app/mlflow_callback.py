@@ -4,7 +4,7 @@ This callback automatically logs training metrics to MLflow during fine-tuning.
 """
 
 import mlflow
-from transformers import TrainerCallback
+from transformers.trainer_callback import TrainerCallback
 from typing import Dict, Any
 
 
@@ -48,7 +48,8 @@ class MLflowCallback(TrainerCallback):
     def on_epoch_begin(self, args, state, control, **kwargs):
         """Called at the beginning of each epoch."""
         try:
-            mlflow.log_metric("epoch", state.epoch, step=state.global_step)
+            if state.epoch is not None:
+                mlflow.log_metric("epoch", float(state.epoch), step=state.global_step)
         except Exception as e:
             print(f"Warning: Failed to log epoch: {e}")
     
@@ -56,7 +57,8 @@ class MLflowCallback(TrainerCallback):
         """Called at the end of each epoch."""
         try:
             # Log additional epoch-level metrics
-            mlflow.log_metric("epoch_completed", state.epoch, step=state.global_step)
+            if state.epoch is not None:
+                mlflow.log_metric("epoch_completed", float(state.epoch), step=state.global_step)
         except Exception as e:
             print(f"Warning: Failed to log epoch completion: {e}")
     
@@ -81,7 +83,8 @@ class MLflowCallback(TrainerCallback):
         try:
             # Log final training statistics
             mlflow.log_metric("total_training_steps", state.global_step)
-            mlflow.log_metric("final_epoch", state.epoch)
+            if state.epoch is not None:
+                mlflow.log_metric("final_epoch", state.epoch)
             
             if hasattr(state, 'log_history') and state.log_history:
                 # Log best metrics if available
