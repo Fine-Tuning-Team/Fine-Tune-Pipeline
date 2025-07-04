@@ -1,0 +1,88 @@
+[fine_tuner]
+base_model_id = "unsloth/Qwen2.5-0.5B-Instruct-unsloth-bnb-4bit"  # Hugging Face model ID or local path
+is_multimodel = false  # Set to true if the model is multimodal (vision + language)
+finetune_vision_layers = false  # Not applicable for non-multimodal models
+finetune_language_layers = false  # Not applicable for non-multimodal models
+finetune_attention_modules = false  # Not applicable for non-multimodal models
+finetune_mlp_modules = false  # Not applicable for non-multimodal models
+max_sequence_length = 4096
+dtype = "null"  # Can be "float16", "bfloat16", or null for auto
+load_in_4bit = true
+load_in_8bit = false
+full_finetuning = false
+rank = 16
+lora_alpha = 16
+lora_dropout = 0.1
+target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+bias = "none"
+training_data_id = "rtweera/simple_implicit_n_qa_results_v2"  # Hugging Face dataset ID or local path
+validation_data_id = "null"  # Optional
+dataset_num_proc = 4  # Number of processes for dataset loading
+question_column = "question"
+ground_truth_column = "answer"
+system_prompt_column = "null"  # Optional, can be null
+system_prompt_override_text = "null"  # Optional, can be null
+run_name = "null"  # Leave null for random name; used for both wandb and mlflow
+run_name_prefix = "" 
+run_name_suffix = ""
+wandb_project_name = "fine-tuning-project-ci-cd"
+device_train_batch_size = 4
+device_validation_batch_size = 4
+grad_accumulation = 4
+epochs = 1
+learning_rate = 0.0002
+warmup_steps = 5
+optimizer = "paged_adamw_8bit"
+weight_decay = 0.01
+lr_scheduler_type = "linear"
+seed = 42  # Random seed for reproducibility
+log_steps = 10  # Log every n steps
+log_first_step = true
+save_steps = 20  # Save every n steps
+save_total_limit = 3  # Limit the number of saved checkpoints
+push_to_hub = true  # Push the model to Hugging Face Hub
+report_to = "wandb"  # Reporting tool, e.g., "wandb", "tensorboard", "none"  # Local directory to save the model and checkpoints
+packing = false  # Can make 5x training faster, for shorter sequences
+use_gradient_checkpointing = "unsloth"  # Can be true, false, or "unsloth"
+use_flash_attention = true
+use_rslora = false
+loftq_config = "null"  # Can be null
+question_part = "<|im_start|>user\n"
+answer_part = "<|im_start|>assistant\n"
+train_on_responses_only = true  # If True, only train (i.e., calculate loss) on responses, not questions
+
+[inferencer]
+max_sequence_length = 4096
+dtype = "null"  # Can be "float16", "bfloat16", or null for auto
+load_in_4bit = true
+load_in_8bit = false
+testing_data_id = "rtweera/testing-testset"  # Same as fine_tuner or different test set
+question_column = "question"
+ground_truth_column = "answer"
+system_prompt_column = "null"  # Optional, can be null
+system_prompt_override_text = "null"  # Optional, can be null
+max_new_tokens = 512
+use_cache = true
+temperature = 0.7
+min_p = 0.1
+hf_user_id = "rtweera"  # Used to generate model path
+run_name = "null"  # Leave null for random name; used for both dataset and mlflow
+run_name_prefix = "" 
+run_name_suffix = ""
+
+[evaluator]
+metrics = ["bleu_score", "rouge_score", "factual_correctness"]  # List of evaluation metrics
+# LIST OF SUPPORTED METRICS:
+# "bleu_score", "rouge_score", "factual_correctness", "semantic_similarity", "answer_accuracy", "answer_relevancy", "answer_correctness"
+llm = "gpt-4o-mini"  # LLM for evaluation
+embedding = "text-embeddings-3-small"  # embedding model for semantic evaluation
+run_name = "null"  # Leave null for random name; used for both dataset and mlflow
+run_name_prefix = ""
+run_name_suffix = ""
+
+[mlflow]
+tracking_uri = "http://localhost:5000"  # MLflow tracking server URI
+experiment_name = "fine-tuning-experiment"  # MLflow experiment name
+run_name = "null"  # Leave null for auto-generated name
+run_name_prefix = ""
+run_name_suffix = ""  # Suffix to append to run name
