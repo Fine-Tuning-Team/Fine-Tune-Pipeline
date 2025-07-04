@@ -261,8 +261,8 @@ class FineTune:
             suffix=self.config.run_name_suffix,
         )
         print(f"Run name set to: {self.run_name}")
-        self.handle_wandb_setup()
-        print("--- ✅ Weights & Biases setup completed. ---")
+        # self.handle_wandb_setup()
+        # print("--- ✅ Weights & Biases setup completed. ---")
 
         # Training
         trainer = SFTTrainer(
