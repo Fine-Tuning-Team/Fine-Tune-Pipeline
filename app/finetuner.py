@@ -5,6 +5,7 @@ from unsloth.chat_templates import get_chat_template, train_on_responses_only
 import argparse
 import os
 import wandb
+import mlflow
 
 from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
 from trl import SFTTrainer
@@ -264,7 +265,33 @@ class FineTune:
         # self.handle_wandb_setup()
         # print("--- ✅ Weights & Biases setup completed. ---")
 
-        # Training
+        # Log dataset and model information if we're in an active MLflow run
+        if mlflow.active_run() is not None:
+            try:
+                # Log basic parameters before training
+                mlflow.log_params({
+                    "training_dataset_id": self.config.training_data_id,
+                    "validation_dataset_id": str(self.config.validation_data_id),
+                    "base_model_id": self.config.base_model_id,
+                    "run_name": self.run_name,
+                })
+                
+                # Log dataset information
+                try:
+                    mlflow.log_param("training_dataset_size", len(training_dataset))  # type: ignore
+                except:
+                    mlflow.log_param("training_dataset_size", "unknown")
+                    
+                if validation_dataset is not None:
+                    try:
+                        mlflow.log_param("validation_dataset_size", len(validation_dataset))  # type: ignore
+                    except:
+                        mlflow.log_param("validation_dataset_size", "unknown")
+                        
+            except Exception as e:
+                print(f"--- ⚠️ Warning: Failed to log initial parameters: {e} ---")
+        
+        # Training setup
         trainer = SFTTrainer(
             model=self.model,
             tokenizer=self.tokenizer,  # type: ignore
@@ -291,7 +318,7 @@ class FineTune:
                 lr_scheduler_type=self.config.lr_scheduler_type,
                 seed=self.config.seed,
                 output_dir=self.MODEL_LOCAL_OUTPUT_DIR,  # Save checkpoints and outputs to local models dir
-                report_to=self.config.report_to,
+                report_to=self.config.report_to,  # Keep original MLflow reporting
                 save_steps=self.config.save_steps,
                 save_total_limit=self.config.save_total_limit,
                 push_to_hub=self.config.push_to_hub,
@@ -300,15 +327,41 @@ class FineTune:
             callbacks=[],
         )
         print("--- ✅ Trainer initialized successfully. ---")
+        
         if self.config.train_on_responses_only:
             trainer = train_on_responses_only(
                 trainer,
                 instruction_part=self.config.question_part,
                 response_part=self.config.answer_part,
             )
+        
         print("--- ✅ Starting training... ---")
+        
+        # Train - the trainer will automatically use the active MLflow run if one exists
         trainer_stats = trainer.train()  # type: ignore
+            
         print(f"\n\n--- ✅ Training completed with stats: {trainer_stats} ---")
+        
+        # Log some final metrics if we're in an active MLflow run
+        if mlflow.active_run() is not None and trainer_stats is not None:
+            try:
+                # Log final training statistics
+                final_metrics = {}
+                if hasattr(trainer_stats, 'training_loss'):
+                    final_metrics["final_training_loss"] = trainer_stats.training_loss
+                if hasattr(trainer_stats, 'eval_loss'):
+                    final_metrics["final_eval_loss"] = trainer_stats.eval_loss 
+                if hasattr(trainer_stats, 'epoch'):
+                    final_metrics["final_epoch"] = trainer_stats.epoch
+                if hasattr(trainer_stats, 'global_step'):
+                    final_metrics["total_training_steps"] = trainer_stats.global_step
+                
+                if final_metrics:
+                    mlflow.log_metrics(final_metrics)
+                    
+            except Exception as e:
+                print(f"--- ⚠️ Warning: Failed to log final training stats: {e} ---")
+        
         print(
             f"--- ✅ Model and tokenizer saved to {self.MODEL_LOCAL_OUTPUT_DIR} locally and to Hugging Face Hub with ID: {self.run_name} ---"
         )

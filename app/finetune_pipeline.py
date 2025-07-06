@@ -63,8 +63,10 @@ class FineTunePipeline:
         try:
             # Set tracking URI
             mlflow.set_tracking_uri(self.mlflow_config.tracking_uri)
+            mlflow.set_experiment(self.mlflow_config.experiment_name)
             self.mlflow_client = MlflowClient(self.mlflow_config.tracking_uri)
             
+            # TODO: Need to look into this logic
             # Create or get experiment
             try:
                 experiment = mlflow.get_experiment_by_name(self.mlflow_config.experiment_name)
@@ -73,7 +75,8 @@ class FineTunePipeline:
                 else:
                     self.experiment_id = experiment.experiment_id
             except Exception:
-                self.experiment_id = mlflow.create_experiment(self.mlflow_config.experiment_name)
+                self.experiment_id = mlflow.create_experiment(self.mlflow_config.experiment_name)\
+            # TODO: End of TODO
             
             # Setup run name
             self.run_name = setup_run_name(
@@ -166,12 +169,23 @@ class FineTunePipeline:
                 
                 # Log training statistics if available
                 if training_stats:
+                    # Log basic trainer stats
                     if hasattr(training_stats, 'training_loss'):
                         mlflow.log_metric("final_training_loss", training_stats.training_loss)
                     if hasattr(training_stats, 'eval_loss'):
                         mlflow.log_metric("final_eval_loss", training_stats.eval_loss)
                     if hasattr(training_stats, 'epoch'):
                         mlflow.log_metric("total_epochs", training_stats.epoch)
+                    if hasattr(training_stats, 'global_step'):
+                        mlflow.log_metric("total_training_steps", training_stats.global_step)
+                    
+                    # Log comprehensive training stats
+                    if hasattr(training_stats, '__dict__'):
+                        for key, value in training_stats.__dict__.items():
+                            if isinstance(value, (int, float)):
+                                mlflow.log_metric(f"training_{key}", value)
+                            elif isinstance(value, (str, bool)):
+                                mlflow.log_param(f"training_{key}", str(value))
                 
                 model_path = "./models/fine_tuned"
                 # ===== DISABLED: As choroe only has in-memory storage =====
@@ -377,7 +391,7 @@ class FineTunePipeline:
                 self.pipeline_results["inference"] = {"status": "skipped", "reason": "disabled"}
             
             # Run evaluation
-            if self.run_evaluation:
+            if self.enable_evaluation:
                 self.pipeline_results["evaluation"] = self.run_evaluation()
             else:
                 print("--- ⏭️ Skipping evaluation phase ---")
