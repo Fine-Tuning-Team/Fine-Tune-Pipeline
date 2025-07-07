@@ -1,3 +1,4 @@
+import mlflow.data.huggingface_dataset
 import unsloth  # type: ignore # Do not remove this import, it is required for the unsloth library to work properly
 from unsloth import FastLanguageModel, is_bfloat16_supported
 from unsloth.chat_templates import get_chat_template, train_on_responses_only
@@ -6,6 +7,7 @@ import argparse
 import os
 import wandb
 import mlflow
+import mlflow.data
 
 from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
 from trl import SFTTrainer
@@ -33,6 +35,7 @@ class FineTune:
         self.run_name = None
 
         self.MODEL_LOCAL_OUTPUT_DIR = "./models/fine_tuned"
+        self.HUGGINGFACE_BASE_URL = "https://huggingface.co/" 
 
     def load_base_model_and_tokenizer(
         self,
@@ -196,8 +199,12 @@ class FineTune:
             columns_to_keep.add(self.config.system_prompt_column)
 
         return [col for col in dataset_columns if col not in columns_to_keep]
+    
+    def log_configurations_to_mlflow(self):
+        for key, value in self.config.__dict__.items():
+                mlflow.log_param(f"config_{key}", value)
 
-    def run(self):
+    def run(self, run_name=None):
         """
         Run the fine-tuning process.
         Returns:
@@ -209,10 +216,13 @@ class FineTune:
 
         # Load training and validation data
         training_dataset = load_huggingface_dataset(self.config.training_data_id)
+        training_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(training_dataset)
+        validation_dataset_for_mlflow = None
         if self.config.validation_data_id is not None:
             validation_dataset = load_huggingface_dataset(
                 self.config.validation_data_id
             )
+            validation_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(validation_dataset)
         else:
             validation_dataset = None
         print(f"--- ✅ Training dataset loaded: {self.config.training_data_id} ---")
@@ -256,11 +266,14 @@ class FineTune:
             )
         print("--- ✅ Data preprocessing completed. ---")
 
-        self.run_name = setup_run_name(
-            name=self.config.run_name,
-            prefix=self.config.run_name_prefix,
-            suffix=self.config.run_name_suffix,
-        )
+        if run_name is not None:
+            self.run_name = run_name
+        else:
+            self.run_name = setup_run_name(
+                name=self.config.run_name,
+                prefix=self.config.run_name_prefix,
+                suffix=self.config.run_name_suffix,
+            )
         print(f"Run name set to: {self.run_name}")
         # self.handle_wandb_setup()
         # print("--- ✅ Weights & Biases setup completed. ---")
@@ -268,14 +281,26 @@ class FineTune:
         # Log dataset and model information if we're in an active MLflow run
         if mlflow.active_run() is not None:
             try:
-                # Log basic parameters before training
-                mlflow.log_params({
-                    "training_dataset_id": self.config.training_data_id,
-                    "validation_dataset_id": str(self.config.validation_data_id),
-                    "base_model_id": self.config.base_model_id,
-                    "run_name": self.run_name,
-                })
-                
+                # Enable system metrics logging
+                mlflow.enable_system_metrics_logging()
+                print("--- ✅ MLflow system metrics logging enabled. ---")
+
+                # Log configurations
+                self.log_configurations_to_mlflow()
+
+                # Run name logging
+                mlflow.log_param("run_name", self.run_name)
+
+                # Model logging
+                base_model_url = self.HUGGINGFACE_BASE_URL + self.config.base_model_id
+                mlflow.log_param("base_model_url", base_model_url)
+                mlflow.log_param("base_model_name", self.config.base_model_id.split("/")[-1])
+
+                # Dataset logging
+                mlflow.log_input(training_dataset_for_mlflow, context="training")
+                if validation_dataset_for_mlflow is not None:
+                    mlflow.log_input(validation_dataset_for_mlflow, context="validation")
+
                 # Log dataset information
                 try:
                     mlflow.log_param("training_dataset_size", len(training_dataset))  # type: ignore
@@ -287,6 +312,7 @@ class FineTune:
                         mlflow.log_param("validation_dataset_size", len(validation_dataset))  # type: ignore
                     except:
                         mlflow.log_param("validation_dataset_size", "unknown")
+                # ========================================================================
                         
             except Exception as e:
                 print(f"--- ⚠️ Warning: Failed to log initial parameters: {e} ---")
@@ -336,31 +362,30 @@ class FineTune:
             )
         
         print("--- ✅ Starting training... ---")
-        
         # Train - the trainer will automatically use the active MLflow run if one exists
         trainer_stats = trainer.train()  # type: ignore
-            
         print(f"\n\n--- ✅ Training completed with stats: {trainer_stats} ---")
         
+        # TODO: These are already been logged. So don't log twice, it can get confusing
+        # ===============================================================================
         # Log some final metrics if we're in an active MLflow run
-        if mlflow.active_run() is not None and trainer_stats is not None:
-            try:
-                # Log final training statistics
-                final_metrics = {}
-                if hasattr(trainer_stats, 'training_loss'):
-                    final_metrics["final_training_loss"] = trainer_stats.training_loss
-                if hasattr(trainer_stats, 'eval_loss'):
-                    final_metrics["final_eval_loss"] = trainer_stats.eval_loss 
-                if hasattr(trainer_stats, 'epoch'):
-                    final_metrics["final_epoch"] = trainer_stats.epoch
-                if hasattr(trainer_stats, 'global_step'):
-                    final_metrics["total_training_steps"] = trainer_stats.global_step
+        # if mlflow.active_run() is not None and trainer_stats is not None:
+        #     try:
+        #         # Log final training statistics
+        #         final_metrics = {}
+        #         if hasattr(trainer_stats, 'training_loss'):
+        #             final_metrics["trainer_stats_final_training_loss"] = trainer_stats.training_loss
+        #         if hasattr(trainer_stats, 'eval_loss'):
+        #             final_metrics["trainer_stats_final_eval_loss"] = trainer_stats.eval_loss
+        #         if hasattr(trainer_stats, 'global_step'):
+        #             final_metrics["trainer_stats_total_training_steps"] = trainer_stats.global_step
                 
-                if final_metrics:
-                    mlflow.log_metrics(final_metrics)
+        #         if final_metrics:
+        #             mlflow.log_metrics(final_metrics)
                     
-            except Exception as e:
-                print(f"--- ⚠️ Warning: Failed to log final training stats: {e} ---")
+        #     except Exception as e:
+        #         print(f"--- ⚠️ Warning: Failed to log final training stats: {e} ---")
+        # ===============================================================================
         
         print(
             f"--- ✅ Model and tokenizer saved to {self.MODEL_LOCAL_OUTPUT_DIR} locally and to Hugging Face Hub with ID: {self.run_name} ---"

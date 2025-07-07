@@ -178,16 +178,9 @@ class FineTunePipeline:
                         mlflow.log_metric("total_epochs", training_stats.epoch)
                     if hasattr(training_stats, 'global_step'):
                         mlflow.log_metric("total_training_steps", training_stats.global_step)
-                    
-                    # Log comprehensive training stats
-                    if hasattr(training_stats, '__dict__'):
-                        for key, value in training_stats.__dict__.items():
-                            if isinstance(value, (int, float)):
-                                mlflow.log_metric(f"training_{key}", value)
-                            elif isinstance(value, (str, bool)):
-                                mlflow.log_param(f"training_{key}", str(value))
+
                 
-                model_path = "./models/fine_tuned"
+                # model_path = "./models/fine_tuned"
                 # ===== DISABLED: As choroe only has in-memory storage =====
                 # Log model artifacts
                 # if Path(model_path).exists():
@@ -198,7 +191,7 @@ class FineTunePipeline:
                     "status": "success",
                     "duration_seconds": finetuning_duration,
                     "training_stats": training_stats,
-                    "model_path": model_path
+                    # "model_path": model_path
                 }
                 
                 print(f"--- ✅ Finetuning completed in {finetuning_duration:.2f} seconds ---")
