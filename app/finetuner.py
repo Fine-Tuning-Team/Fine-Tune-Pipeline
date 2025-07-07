@@ -1,4 +1,3 @@
-import mlflow.data.huggingface_dataset
 import unsloth  # type: ignore # Do not remove this import, it is required for the unsloth library to work properly
 from unsloth import FastLanguageModel, is_bfloat16_supported
 from unsloth.chat_templates import get_chat_template, train_on_responses_only
@@ -224,9 +223,9 @@ class FineTune:
             + self.HUGGINGFACE_DATASETS_PART
             + self.config.training_data_id
         )
-        training_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(
+        training_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface( # type: ignore
             training_dataset, path=self.config.training_data_id
-        )
+        ) 
         # TODO: remove ================================================
         print(f"!!! DATA ID PATH: {self.config.training_data_id} !!!")
         # =============================================================
@@ -241,7 +240,7 @@ class FineTune:
                 + self.config.validation_data_id
             )
             validation_dataset_for_mlflow = (
-                mlflow.data.huggingface_dataset.from_huggingface(
+                mlflow.data.huggingface_dataset.from_huggingface(   # type: ignore
                     validation_dataset, source=source_of_validation_dataset_for_mlflow
                 )
             )
@@ -306,8 +305,7 @@ class FineTune:
                 # TODO: FOR TESITNG =====
                 from datasets import load_dataset
                 data = load_dataset("rtweera/user_centric_results_v2", split="train")
-                import mlflow.data
-                ds = mlflow.data.huggingface_dataset.from_huggingface(
+                ds = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
                     data, path="rtweera/user_centric_results_v2"
                 )
                 mlflow.log_input(ds, context="inner-data")

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 import mlflow
+import mlflow.data
 from mlflow import MlflowClient
 
 # Local imports
@@ -187,8 +188,7 @@ class FineTunePipeline:
                 # TODO: FOR TESITNG =====
                 from datasets import load_dataset
                 data = load_dataset("rtweera/user_centric_results_v2", split="train")
-                import mlflow.data
-                ds = mlflow.data.huggingface_dataset.from_huggingface(
+                ds = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
                     data, path="rtweera/user_centric_results_v2"
                 )
                 mlflow.log_input(ds, context="outer-data")
