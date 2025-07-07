@@ -162,6 +162,9 @@ class FineTunePipeline:
         try:
             # Create nested run for finetuning
             run_name = f"{self.run_name}_finetuning"
+            # Enable system metrics logging
+            mlflow.enable_system_metrics_logging()
+            print("--- ✅ MLflow system metrics logging enabled. ---")
             with mlflow.start_run(nested=True, run_name=run_name):
                 finetuning_start_time = time.time()
                 mlflow.log_param("phase", "finetuning")
@@ -178,6 +181,21 @@ class FineTunePipeline:
                 mlflow.log_metric(
                     "finetuning_duration_minutes", finetuning_duration / 60
                 )
+
+
+
+                # TODO: FOR TESITNG =====
+                from datasets import load_dataset
+                data = load_dataset("rtweera/user_centric_results_v2", split="train")
+                import mlflow.data
+                ds = mlflow.data.huggingface_dataset.from_huggingface(
+                    data, path="rtweera/user_centric_results_v2"
+                )
+                mlflow.log_input(ds, context="outer-data")
+                # TODO: END OF TESTING =====
+
+
+
 
                 # Log training statistics if available
                 if training_stats:

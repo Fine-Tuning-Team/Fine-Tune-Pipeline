@@ -225,8 +225,11 @@ class FineTune:
             + self.config.training_data_id
         )
         training_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(
-            training_dataset, source=source_of_training_dataset_for_mlflow
+            training_dataset, path=self.config.training_data_id
         )
+        # TODO: remove ================================================
+        print(f"!!! DATA ID PATH: {self.config.training_data_id} !!!")
+        # =============================================================
         validation_dataset_for_mlflow = None
         if self.config.validation_data_id is not None:
             validation_dataset = load_huggingface_dataset(
@@ -300,9 +303,15 @@ class FineTune:
         # Log dataset and model information if we're in an active MLflow run
         if mlflow.active_run() is not None:
             try:
-                # Enable system metrics logging
-                mlflow.enable_system_metrics_logging()
-                print("--- ✅ MLflow system metrics logging enabled. ---")
+                # TODO: FOR TESITNG =====
+                from datasets import load_dataset
+                data = load_dataset("rtweera/user_centric_results_v2", split="train")
+                import mlflow.data
+                ds = mlflow.data.huggingface_dataset.from_huggingface(
+                    data, path="rtweera/user_centric_results_v2"
+                )
+                mlflow.log_input(ds, context="inner-data")
+                # TODO: END OF TESTING =====
 
                 # Log configurations
                 self.log_configurations_to_mlflow()

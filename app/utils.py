@@ -14,7 +14,7 @@ from huggingface_hub import login
 
 def load_huggingface_dataset(
     dataset_id: str,
-) -> DatasetDict | Dataset | IterableDatasetDict | IterableDataset:
+) -> Dataset:
     """
     Load a dataset from Hugging Face. Whether the data is jsonl, csv, parquet or any other format, it will be loaded as a Hugging Face Dataset.
     Args:
@@ -23,11 +23,13 @@ def load_huggingface_dataset(
         datasets.arrow_dataset.Dataset: The loaded dataset.
     """
     try:
-        dataset = datasets.load_dataset(dataset_id)
+        dataset = datasets.load_dataset(dataset_id, split="train")
         if isinstance(dataset, dict):
             # If the dataset is a dictionary, return the first split
             return list(dataset.values())[0]
-        return dataset
+        if isinstance(dataset, Dataset):
+            return dataset
+        raise TypeError(f"Expected a Dataset, but got {type(dataset).__name__}")
     except Exception as e:
         raise ValueError(
             f"Failed to load dataset from Hugging Face with ID '{dataset_id}': {e}"
