@@ -309,6 +309,30 @@ class FineTune:
                     data, path="rtweera/user_centric_results_v2"
                 )
                 mlflow.log_input(ds, context="inner-data")
+
+                data2 = load_dataset(self.config.training_data_id, split="train")
+                ds2 = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
+                    data2, path=self.config.training_data_id
+                )
+                mlflow.log_input(ds2, context="inner-data-2")
+
+                data3 = load_huggingface_dataset(
+                    self.config.training_data_id
+                )
+                ds3 = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
+                    data3, path=self.config.training_data_id
+                )
+                mlflow.log_input(ds3, context="inner-data-3")
+
+                data4 = load_dataset(
+                    self.config.training_data_id
+                )
+                ds4 = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
+                    data4, path="rtweera/user_centric_results_v2"
+                )
+                mlflow.log_input(ds4, context="inner-data-4")
+
+
                 # TODO: END OF TESTING =====
 
                 # Log configurations
