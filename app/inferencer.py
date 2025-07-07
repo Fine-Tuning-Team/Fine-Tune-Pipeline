@@ -88,7 +88,7 @@ class Inferencer:
             )
         untokenized_msg = self.tokenizer.apply_chat_template(
             conversation, add_generation_prompt=True, tokenize=False
-        ) # BUG
+        )  # BUG
         return untokenized_msg
 
     def generate_a_response(self, data_row):
@@ -118,9 +118,9 @@ class Inferencer:
         conversation = self.convert_a_data_row_to_conversation_format(data_row)
         untokenized_msg = self.apply_chat_template_to_conversation(conversation)
 
-        tokenized_input = self.tokenizer(
-            untokenized_msg, return_tensors="pt"
-        ).to(self.model.device)  # This will tokenize the input and prepare it for the model
+        tokenized_input = self.tokenizer(untokenized_msg, return_tensors="pt").to(
+            self.model.device
+        )  # This will tokenize the input and prepare it for the model
         input_length = tokenized_input.input_ids.shape[-1]
 
         output_ids = self.model.generate(
@@ -131,7 +131,7 @@ class Inferencer:
             min_p=self.config.min_p,
         )
         model_response = self.tokenizer.decode(
-            output_ids[0][input_length :], skip_special_tokens=True
+            output_ids[0][input_length:], skip_special_tokens=True
         )
         # output_ids[0][tokenized_msg.shape[-1]:] --> output_ids[0] is the generated response, and we skip the user and system parts by slicing from the end of the tokenized message.
         output_data_row = {
@@ -210,7 +210,7 @@ if __name__ == "__main__":
     parser.add_argument("--hf-key", type=str, help="Hugging Face API token")
 
     args = parser.parse_args()
-    
+
     # Set environment variables from command-line arguments
     if args.hf_key:
         os.environ["HF_TOKEN"] = args.hf_key
