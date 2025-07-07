@@ -204,7 +204,7 @@ class FineTune:
         for key, value in self.config.__dict__.items():
                 mlflow.log_param(f"config_{key}", value)
 
-    def run(self, run_name=None):
+    def run(self, run_name: str|None=None):
         """
         Run the fine-tuning process.
         Returns:
@@ -216,13 +216,13 @@ class FineTune:
 
         # Load training and validation data
         training_dataset = load_huggingface_dataset(self.config.training_data_id)
-        training_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(training_dataset)
+        training_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(training_dataset, path=self.config.training_data_id)
         validation_dataset_for_mlflow = None
         if self.config.validation_data_id is not None:
             validation_dataset = load_huggingface_dataset(
                 self.config.validation_data_id
             )
-            validation_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(validation_dataset)
+            validation_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(validation_dataset, path=self.config.validation_data_id)
         else:
             validation_dataset = None
         print(f"--- ✅ Training dataset loaded: {self.config.training_data_id} ---")
@@ -301,18 +301,19 @@ class FineTune:
                 if validation_dataset_for_mlflow is not None:
                     mlflow.log_input(validation_dataset_for_mlflow, context="validation")
 
-                # Log dataset information
-                try:
-                    mlflow.log_param("training_dataset_size", len(training_dataset))  # type: ignore
-                except:
-                    mlflow.log_param("training_dataset_size", "unknown")
+                # INFO: ALready logged by mlflow.from_hugginface
+                # # Log dataset information
+                # try:
+                #     mlflow.log_param("training_dataset_size", len(training_dataset))  # type: ignore
+                # except:
+                #     mlflow.log_param("training_dataset_size", "unknown")
                     
-                if validation_dataset is not None:
-                    try:
-                        mlflow.log_param("validation_dataset_size", len(validation_dataset))  # type: ignore
-                    except:
-                        mlflow.log_param("validation_dataset_size", "unknown")
-                # ========================================================================
+                # if validation_dataset is not None:
+                #     try:
+                #         mlflow.log_param("validation_dataset_size", len(validation_dataset))  # type: ignore
+                #     except:
+                #         mlflow.log_param("validation_dataset_size", "unknown")
+                # # ========================================================================
                         
             except Exception as e:
                 print(f"--- ⚠️ Warning: Failed to log initial parameters: {e} ---")
@@ -349,6 +350,7 @@ class FineTune:
                 save_total_limit=self.config.save_total_limit,
                 push_to_hub=self.config.push_to_hub,
                 hub_model_id=self.run_name,
+                run_name=self.run_name,
             ),
             callbacks=[],
         )

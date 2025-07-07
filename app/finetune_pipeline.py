@@ -109,7 +109,7 @@ class FineTunePipeline:
             mlflow.log_param("pipeline_start_time", self.pipeline_start_time)
             mlflow.log_param("pipeline_version", PIPELINE_VERSION)
             
-            print(f"--- ✅ MLflow run started: {self.run_id} ---")
+            print(f"--- ✅ MLflow run started with id: {self.run_id} and name: {self.run_name} ---")
             
         except Exception as e:
             print(f"--- ❌ Failed to start MLflow run: {e} ---")
@@ -152,13 +152,14 @@ class FineTunePipeline:
         
         try:
             # Create nested run for finetuning
-            with mlflow.start_run(nested=True, run_name=f"{self.run_name}_finetuning"):
+            run_name = f"{self.run_name}_finetuning"
+            with mlflow.start_run(nested=True, run_name=run_name):
                 finetuning_start_time = time.time()
                 mlflow.log_param("phase", "finetuning")
                 
                 # Initialize and run finetuner
                 self.finetuner = FineTune(config_manager=self.config_manager)
-                training_stats = self.finetuner.run()
+                training_stats = self.finetuner.run(run_name=run_name)
                 
                 finetuning_end_time = time.time()
                 finetuning_duration = finetuning_end_time - finetuning_start_time
