@@ -332,10 +332,14 @@ class FineTunePipeline:
                 "total_duration_minutes": total_duration / 60
             }
             
-            # Save results summary as artifact
-            with open("pipeline_summary.json", "w") as f:
-                json.dump(results_summary, f, indent=2)
-            mlflow.log_artifact("pipeline_summary.json")
+            # TODO: Remove artifact logging, unless an artifcat storage is available
+            # ===============================================
+            # # Save results summary as artifact
+            # with open("pipeline_summary.json", "w") as f:
+            #     json.dump(results_summary, f, indent=2)
+            # mlflow.log_artifact("pipeline_summary.json")
+            # ===============================================
+            mlflow.log_param("pipeline_results_summary", results_summary)
             
             print(f"--- ✅ Pipeline completed in {total_duration:.2f} seconds ---")
             print(f"--- MLflow Run ID: {self.run_id} ---")
