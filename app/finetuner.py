@@ -310,27 +310,37 @@ class FineTune:
                 )
                 mlflow.log_input(ds, context="inner-data")
 
+                print(f"DEBUG: config.training_data_id = '{self.config.training_data_id}'")
+                print(f"DEBUG: type = {type(self.config.training_data_id)}")
+
                 data2 = load_dataset(self.config.training_data_id, split="train")
                 ds2 = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
                     data2, path=self.config.training_data_id
                 )
                 mlflow.log_input(ds2, context="inner-data-2")
 
-                data3 = load_huggingface_dataset(
-                    self.config.training_data_id
+                clean_path = str(self.config.training_data_id).strip()
+                print(f"DEBUG: type = {type(clean_path)}")
+                ds3 = mlflow.data.huggingface_dataset.from_huggingface( # type: ignore
+                    data2, path=clean_path
                 )
-                ds3 = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
-                    data3, path=self.config.training_data_id
-                )
-                mlflow.log_input(ds3, context="inner-data-3")
+                mlflow.log_input(ds3, context="inner-data-2-clean")
 
-                data4 = load_dataset(
-                    self.config.training_data_id
-                )
-                ds4 = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
-                    data4, path="rtweera/user_centric_results_v2"
-                )
-                mlflow.log_input(ds4, context="inner-data-4")
+                # data3 = load_huggingface_dataset(
+                #     self.config.training_data_id
+                # )
+                # ds3 = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
+                #     data3, path=self.config.training_data_id
+                # )
+                # mlflow.log_input(ds3, context="inner-data-3")
+
+                # data4 = load_dataset(
+                #     self.config.training_data_id
+                # )
+                # ds4 = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
+                #     data4, path="rtweera/user_centric_results_v2"
+                # )
+                # mlflow.log_input(ds4, context="inner-data-4")
 
 
                 # TODO: END OF TESTING =====
