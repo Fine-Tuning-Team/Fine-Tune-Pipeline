@@ -79,6 +79,8 @@ embedding = "text-embeddings-3-small"  # embedding model for semantic evaluation
 run_name = "null"  # Leave null for random name; used for both dataset and mlflow
 run_name_prefix = ""
 run_name_suffix = ""
+cost_per_million_input_tokens = 0.15  # Cost per million input tokens in USD
+cost_per_million_output_tokens = 0.60  # Cost per million output tokens in
 
 [mlflow]
 tracking_uri = "https://33008a58-e51f-4442-994c-c4841203c6fb.e1-us-east-azure.choreoapps.dev"  # MLflow tracking server URI

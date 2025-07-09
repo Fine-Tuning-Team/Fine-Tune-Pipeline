@@ -203,6 +203,8 @@ class EvaluatorConfig:
     run_name: str | None
     run_name_prefix: str
     run_name_suffix: str
+    cost_per_million_input_tokens: float
+    cost_per_million_output_tokens: float
 
     @classmethod
     def from_config(cls, config_manager: ConfigManager):

@@ -23,6 +23,7 @@ from ragas.metrics import (
     AnswerRelevancy,
     Metric,
 )
+from ragas.cost import get_token_usage_for_openai, TokenUsage
 
 # Local imports
 from config_manager import get_config_manager, EvaluatorConfig
@@ -153,6 +154,7 @@ class Evaluator:
             llm=self.llm,
             embeddings=self.embeddings,
             column_map=column_map,
+            token_usage_parser=get_token_usage_for_openai,
         )
         self.evaluation_results = results
 
@@ -168,6 +170,32 @@ class Evaluator:
         # Convert the evaluation results to a dictionary format
         summary = self.evaluation_results._repr_dict
         return summary
+    
+    def get_token_count_and_cost(self) -> list:
+        """
+        Get the token count and cost for the evaluation.
+        """
+        if self.evaluation_results is None:
+            raise ValueError(
+                "Evaluation results are not available. Please run the evaluation first."
+            )
+
+        # Get token usage for OpenAI
+        token_usage_result = self.evaluation_results.total_tokens()
+        token_usage: list[TokenUsage] = (
+            token_usage_result if isinstance(token_usage_result, list) else [token_usage_result]
+        )
+        cost_per_million_input_tokens = self.config.cost_per_million_input_tokens
+        cost_per_million_output_tokens = self.config.cost_per_million_output_tokens
+
+        total_token_usage_and_cost = [
+            {
+                "input_tokens": token_usage_item.input_tokens,
+                "output_tokens": token_usage_item.output_tokens,
+                "cost": token_usage_item.cost(cost_per_million_input_tokens*10e-6, cost_per_million_output_tokens*10e-6)
+            } for token_usage_item in token_usage
+        ]
+        return total_token_usage_and_cost
 
     def save_results(self) -> None:
         """
@@ -193,7 +221,7 @@ class Evaluator:
             output_file_path = os.path.join("", self.OUTPUT_FILE_NAME_DETAILED)
             detailed_df.to_excel(output_file_path, index=True)
 
-    def run(self):
+    def run(self, run_name: str | None = None) -> None:
         """
         Run the evaluation process.
         """
@@ -204,11 +232,14 @@ class Evaluator:
         setup_openai_key()
 
         # Setup run name
-        self.run_name = setup_run_name(
-            name=self.config.run_name,
-            prefix=self.config.run_name_prefix,
-            suffix=self.config.run_name_suffix,
-        )
+        if run_name is not None:
+            self.run_name = run_name
+        else:
+            self.run_name = setup_run_name(
+                name=self.config.run_name,
+                prefix=self.config.run_name_prefix,
+                suffix=self.config.run_name_suffix,
+            )
         print(f"--- ✅ Run name set to: {self.run_name} ---")
 
         # Load the Ragas metrics functions based on the configuration
@@ -233,6 +264,10 @@ class Evaluator:
         print(
             f"--- ✅ Evaluation completed with results: {self.get_summary_results()} ---"
         )
+
+        # Get token count and cost
+        token_count_and_cost = self.get_token_count_and_cost()
+        print(f"--- 💲 Token count and cost: {token_count_and_cost} ---")
 
         # Save results
         self.save_results()
