@@ -233,6 +233,11 @@ class Inferencer:
         )
         print("--- ✅ Inference completed successfully. ---")
 
+        output_file_line_count = -1
+        if os.path.exists(self.OUTPUT_FILE_NAME):
+            with open(self.OUTPUT_FILE_NAME, "r", encoding="utf-8") as f:
+                output_file_line_count = sum(1 for _ in f)
+        return output_file_line_count
 
 if __name__ == "__main__":
     print("--- Starting the Inferencer ---")

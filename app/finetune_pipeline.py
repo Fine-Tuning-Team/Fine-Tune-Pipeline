@@ -240,7 +240,7 @@ class FineTunePipeline:
 
                 # Initialize and run inferencer
                 self.inferencer = Inferencer(config_manager=self.config_manager)
-                self.inferencer.run()
+                self.inferencer.run(run_name=run_name)
 
                 inference_end_time = time.time()
                 inference_duration = inference_end_time - inference_start_time
