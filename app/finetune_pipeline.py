@@ -183,20 +183,6 @@ class FineTunePipeline:
                     "finetuning_duration_minutes", finetuning_duration / 60
                 )
 
-
-
-                # TODO: FOR TESITNG =====
-                from datasets import load_dataset
-                data = load_dataset("rtweera/user_centric_results_v2", split="train")
-                ds = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
-                    data, path="rtweera/user_centric_results_v2"
-                )
-                mlflow.log_input(ds, context="outer-data")
-                # TODO: END OF TESTING =====
-
-
-
-
                 # Log training statistics if available
                 if training_stats:
                     # Log basic trainer stats
