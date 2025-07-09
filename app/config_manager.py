@@ -205,6 +205,7 @@ class EvaluatorConfig:
     run_name_suffix: str
     cost_per_million_input_tokens: float
     cost_per_million_output_tokens: float
+    hf_user_id: str  # Hugging Face user ID for repository creation
 
     @classmethod
     def from_config(cls, config_manager: ConfigManager):

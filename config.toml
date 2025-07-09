@@ -80,11 +80,12 @@ run_name = "null"  # Leave null for random name; used for both dataset and mlflo
 run_name_prefix = ""
 run_name_suffix = ""
 cost_per_million_input_tokens = 0.15  # Cost per million input tokens in USD
-cost_per_million_output_tokens = 0.60  # Cost per million output tokens in
+cost_per_million_output_tokens = 0.60  # Cost per million output tokens in USD
+hf_user_id = "rtweera"  # Hugging Face user ID for repository creation
 
 [mlflow]
 tracking_uri = "https://33008a58-e51f-4442-994c-c4841203c6fb.e1-us-east-azure.choreoapps.dev"  # MLflow tracking server URI
 experiment_name = "full-pipeline-experiment"  # MLflow experiment name
-run_name = "v0.1.0"  # Leave null for auto-generated name
+run_name = "v0.19.0-alpha"  # Leave null for auto-generated name
 run_name_prefix = ""
 run_name_suffix = ""  # Suffix to append to run name

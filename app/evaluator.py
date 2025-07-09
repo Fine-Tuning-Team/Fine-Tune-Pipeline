@@ -27,7 +27,7 @@ from ragas.cost import get_token_usage_for_openai, TokenUsage
 
 # Local imports
 from config_manager import get_config_manager, EvaluatorConfig
-from utils import setup_run_name, setup_openai_key, login_huggingface
+from utils import setup_run_name, setup_openai_key, login_huggingface, push_dataset_to_huggingface
 
 
 class Evaluator:
@@ -221,6 +221,54 @@ class Evaluator:
             output_file_path = os.path.join("", self.OUTPUT_FILE_NAME_DETAILED)
             detailed_df.to_excel(output_file_path, index=True)
 
+    def push_results_to_huggingface(self) -> None:
+        """
+        Push the evaluation results to HuggingFace Hub.
+        """
+        
+        if not self.run_name:
+            raise ValueError("Run name is not set.")
+        
+        if self.evaluation_results is None:
+            raise ValueError(
+                "Evaluation results are not available. Please run the evaluation first."
+            )
+
+        # Determine repository names
+        summary_repo_name = f"{self.run_name}_summary"
+        detailed_repo_name = f"{self.run_name}_detailed"
+        
+        # Create full repository IDs
+        summary_repo_id = f"{self.config.hf_user_id}/{summary_repo_name}"
+        detailed_repo_id = f"{self.config.hf_user_id}/{detailed_repo_name}"
+        
+        try:
+            # Push summary results (JSON file)
+            if os.path.exists(self.OUTPUT_FILE_NAME_SUMMARY):
+                print(f"--- 📤 Pushing summary results to {summary_repo_id} ---")
+                push_dataset_to_huggingface(
+                    repo_id=summary_repo_id,
+                    dataset_path=self.OUTPUT_FILE_NAME_SUMMARY
+                )
+                print(f"--- ✅ Summary results pushed to {summary_repo_id} ---")
+            else:
+                print(f"--- ⚠️ Summary file {self.OUTPUT_FILE_NAME_SUMMARY} not found, skipping push ---")
+            
+            # Push detailed results (Excel file)
+            if os.path.exists(self.OUTPUT_FILE_NAME_DETAILED):
+                print(f"--- 📤 Pushing detailed results to {detailed_repo_id} ---")
+                push_dataset_to_huggingface(
+                    repo_id=detailed_repo_id,
+                    dataset_path=self.OUTPUT_FILE_NAME_DETAILED
+                )
+                print(f"--- ✅ Detailed results pushed to {detailed_repo_id} ---")
+            else:
+                print(f"--- ⚠️ Detailed file {self.OUTPUT_FILE_NAME_DETAILED} not found, skipping push ---")
+                
+        except Exception as e:
+            print(f"--- ❌ Error pushing results to HuggingFace Hub: {e} ---")
+            raise
+
     def run(self, run_name: str | None = None) -> None:
         """
         Run the evaluation process.
@@ -274,6 +322,10 @@ class Evaluator:
         print(
             f"--- ✅ Results saved to {self.OUTPUT_FILE_NAME_DETAILED} and {self.OUTPUT_FILE_NAME_SUMMARY} ---"
         )
+
+        # Push results to HuggingFace Hub
+        self.push_results_to_huggingface()
+        print(f"--- ✅ Results pushed to HuggingFace Hub ---")
 
 
 if __name__ == "__main__":

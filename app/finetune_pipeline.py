@@ -161,11 +161,11 @@ class FineTunePipeline:
         print("\n=== STARTING FINETUNING PHASE ===")
 
         try:
-            # Create nested run for finetuning
             run_name = f"{self.run_name}_finetuning"
             # Enable system metrics logging
             mlflow.enable_system_metrics_logging()
             print("--- ✅ MLflow system metrics logging enabled. ---")
+            # Create nested run for finetuning
             with mlflow.start_run(nested=True, run_name=run_name):
                 finetuning_start_time = time.time()
                 mlflow.log_param("phase", "finetuning")
@@ -229,11 +229,11 @@ class FineTunePipeline:
         print("\n=== STARTING INFERENCE PHASE ===")
 
         try:
-            # Create nested run for inference
             run_name = f"{self.run_name}_inferencing"
             # Enable system metrics logging
             mlflow.enable_system_metrics_logging()
             print("--- ✅ MLflow system metrics logging enabled. ---")
+            # Create nested run for inference
             with mlflow.start_run(nested=True, run_name=run_name):
                 inference_start_time = time.time()
                 mlflow.log_param("phase", "inference")
@@ -248,7 +248,7 @@ class FineTunePipeline:
                 # Log inference metrics
                 mlflow.log_metric("inference_duration_seconds", inference_duration)
                 mlflow.log_metric("inference_duration_minutes", inference_duration / 60)
-                
+
                 inference_results = {
                     "status": "success",
                     "duration_seconds": inference_duration,
@@ -271,14 +271,16 @@ class FineTunePipeline:
         print("\n=== STARTING EVALUATION PHASE ===")
 
         try:
+            run_name = f"{self.run_name}_evaluation"
+
             # Create nested run for evaluation
-            with mlflow.start_run(nested=True, run_name=f"{self.run_name}_evaluation"):
+            with mlflow.start_run(nested=True, run_name=run_name):
                 evaluation_start_time = time.time()
                 mlflow.log_param("phase", "evaluation")
 
                 # Initialize and run evaluator
                 self.evaluator = Evaluator(config_manager=self.config_manager)
-                self.evaluator.run()
+                self.evaluator.run(run_name=run_name)
 
                 evaluation_end_time = time.time()
                 evaluation_duration = evaluation_end_time - evaluation_start_time
@@ -297,21 +299,19 @@ class FineTunePipeline:
                     else:
                         mlflow.log_param(f"eval_{metric_name}", str(metric_value))
 
-                # Log evaluation artifacts
-                detailed_file = "evaluator_output_detailed.xlsx"
-                summary_file = "evaluator_output_summary.json"
+                # # Log evaluation artifacts
+                # detailed_file = "evaluator_output_detailed.xlsx"
+                # summary_file = "evaluator_output_summary.json"
 
-                if Path(detailed_file).exists():
-                    mlflow.log_artifact(detailed_file, "evaluation_outputs")
-                if Path(summary_file).exists():
-                    mlflow.log_artifact(summary_file, "evaluation_outputs")
+                # if Path(detailed_file).exists():
+                #     mlflow.log_artifact(detailed_file, "evaluation_outputs")
+                # if Path(summary_file).exists():
+                #     mlflow.log_artifact(summary_file, "evaluation_outputs")
 
                 evaluation_results = {
                     "status": "success",
                     "duration_seconds": evaluation_duration,
                     "summary_results": summary_results,
-                    "detailed_file": detailed_file,
-                    "summary_file": summary_file,
                 }
 
                 print(

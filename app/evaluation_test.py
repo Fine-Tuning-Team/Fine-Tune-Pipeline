@@ -19,7 +19,7 @@ from pathlib import Path
 # sys.path.append(str(Path(__file__).parent / "app"))
 
 from evaluator import Evaluator
-from config_manager import get_config_manager
+from config_manager import get_config_manager, MLFlowConfig
 
 
 def create_sample_inference_data():
@@ -198,7 +198,15 @@ def main():
         evaluator = Evaluator()
         
         # Run evaluation with custom run name if provided
-        evaluator.run(run_name=args.run_name)
+        if args.run_name:
+            run_name = args.run_name
+            print(f"--- 🏷️ Using run name provided in CLI Args: {args.run_name} ---")
+        else:
+            config = MLFlowConfig.from_config(get_config_manager())
+            print(f"--- 🏷️ Using run name from config: {config.run_name} ---")
+            run_name = config.run_name
+        run_name = f"{run_name}_evaluation" 
+        evaluator.run(run_name=run_name)
         
         print()
         print("--- 🎉 Evaluation completed successfully! ---")
