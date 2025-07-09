@@ -5,11 +5,15 @@ import argparse
 import json
 import os
 from tqdm import tqdm
+import mlflow 
+import mlflow.data
+
 
 # Local imports
 from config_manager import get_config_manager, InferencerConfig
 from utils import (
     load_huggingface_dataset,
+    log_configurations_to_mlflow,
     push_dataset_to_huggingface,
     setup_run_name,
     login_huggingface,
@@ -155,7 +159,7 @@ class Inferencer:
         with open(file_name, mode, encoding="utf-8") as f:
             f.write(json.dumps(data_row, ensure_ascii=False) + "\n")
 
-    def run(self):
+    def run(self, run_name: str | None = None):
         """
         Generate responses for each user prompt in the dataset and return as a list of dicts.
         """
@@ -165,6 +169,9 @@ class Inferencer:
 
         # Load the dataset
         testing_dataset = load_huggingface_dataset(self.config.testing_data_id)
+        testing_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
+            testing_dataset, self.config.testing_data_id
+        )
         print("--- ✅ Loaded testing dataset successfully. ---")
 
         # Load the model
@@ -180,12 +187,35 @@ class Inferencer:
         FastLanguageModel.for_inference(self.model)
         print("--- ✅ Model set for inference. ---")
 
-        self.run_name = setup_run_name(
-            name=self.config.run_name,
-            prefix=self.config.run_name_prefix,
-            suffix=self.config.run_name_suffix,
-        )
+        if run_name is not None:
+            self.config.run_name = run_name
+        else:
+            self.run_name = setup_run_name(
+                name=self.config.run_name,
+                prefix=self.config.run_name_prefix,
+                suffix=self.config.run_name_suffix,
+            )
         print(f"--- ✅ Run name set to: {self.run_name} ---")
+
+        if mlflow.active_run() is not None:
+            try:
+                # Log configurations
+                log_configurations_to_mlflow(self.config)
+
+                # Run name logging
+                mlflow.log_param("run_name", self.run_name)
+
+                # # Model logging
+                # base_model_url = self.HUGGINGFACE_BASE_URL + self.config.base_model_id
+                # mlflow.log_param("base_model_url", base_model_url)
+                # mlflow.log_param(
+                #     "base_model_name", self.config.base_model_id.split("/")[-1]
+                # )
+
+                # Dataset logging
+                mlflow.log_input(testing_dataset_for_mlflow, context="testing")
+            except Exception as e:
+                print(f"--- ⚠️ Warning: Failed to log initial parameters: {e} ---")
 
         # Model response generation
         print("--- ✅ Starting inference on the testing dataset. ---")

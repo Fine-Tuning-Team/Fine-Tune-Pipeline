@@ -16,7 +16,7 @@ from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 # Local imports
 from config_manager import get_config_manager, FineTunerConfig
-from utils import load_huggingface_dataset, login_huggingface, setup_run_name
+from utils import load_huggingface_dataset, log_configurations_to_mlflow, login_huggingface, setup_run_name
 
 
 class FineTune:
@@ -55,7 +55,7 @@ class FineTune:
             load_in_4bit=self.config.load_in_4bit,
             load_in_8bit=self.config.load_in_8bit,
             full_finetuning=self.config.full_finetuning,
-            token=os.getenv("HF_TOKEN"),  # For gated models
+            token=os.getenv("HF_TOKEN", ""),  # For gated models
         )
 
     def get_peft_model(self) -> FastLanguageModel:
@@ -202,9 +202,9 @@ class FineTune:
 
         return [col for col in dataset_columns if col not in columns_to_keep]
 
-    def log_configurations_to_mlflow(self):
-        for key, value in self.config.__dict__.items():
-            mlflow.log_param(f"config_{key}", value)
+    # def log_configurations_to_mlflow(self):
+    #     for key, value in self.config.__dict__.items():
+    #         mlflow.log_param(f"config_{key}", value)
 
     def run(self, run_name: str | None = None):
         """
@@ -218,30 +218,28 @@ class FineTune:
 
         # Load training and validation data
         training_dataset = load_huggingface_dataset(self.config.training_data_id)
-        source_of_training_dataset_for_mlflow = (
-            self.HUGGINGFACE_BASE_URL
-            + self.HUGGINGFACE_DATASETS_PART
-            + self.config.training_data_id
-        )
+        # source_of_training_dataset_for_mlflow = (
+        #     self.HUGGINGFACE_BASE_URL
+        #     + self.HUGGINGFACE_DATASETS_PART
+        #     + self.config.training_data_id
+        # )
         training_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface( # type: ignore
             training_dataset, path=self.config.training_data_id
         ) 
-        # TODO: remove ================================================
-        print(f"!!! DATA ID PATH: {self.config.training_data_id} !!!")
-        # =============================================================
+
         validation_dataset_for_mlflow = None
         if self.config.validation_data_id is not None:
             validation_dataset = load_huggingface_dataset(
                 self.config.validation_data_id
             )
-            source_of_validation_dataset_for_mlflow = (
-                self.HUGGINGFACE_BASE_URL
-                + self.HUGGINGFACE_DATASETS_PART
-                + self.config.validation_data_id
-            )
+            # source_of_validation_dataset_for_mlflow = (
+            #     self.HUGGINGFACE_BASE_URL
+            #     + self.HUGGINGFACE_DATASETS_PART
+            #     + self.config.validation_data_id
+            # )
             validation_dataset_for_mlflow = (
                 mlflow.data.huggingface_dataset.from_huggingface(   # type: ignore
-                    validation_dataset, source=source_of_validation_dataset_for_mlflow
+                    validation_dataset, path=self.config.validation_data_id
                 )
             )
         else:
@@ -346,7 +344,7 @@ class FineTune:
                 # TODO: END OF TESTING =====
 
                 # Log configurations
-                self.log_configurations_to_mlflow()
+                log_configurations_to_mlflow(self.config)
 
                 # Run name logging
                 mlflow.log_param("run_name", self.run_name)

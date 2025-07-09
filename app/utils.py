@@ -10,6 +10,9 @@ import pandas as pd
 import os
 import time
 from huggingface_hub import login
+import mlflow 
+
+from config_manager import FineTunerConfig, InferencerConfig, EvaluatorConfig
 
 
 def load_huggingface_dataset(
@@ -111,3 +114,12 @@ def setup_openai_key():
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         raise ValueError("OpenAI API key is not set in the environment variables.")
+
+
+def log_configurations_to_mlflow(config_object: FineTunerConfig | InferencerConfig | EvaluatorConfig):
+    if not isinstance(config_object, (FineTunerConfig, InferencerConfig, EvaluatorConfig)):
+        raise TypeError(
+            "config_object must be an instance of FineTunerConfig, InferencerConfig, or EvaluatorConfig"
+        )
+    for key, value in config_object.__dict__.items():
+        mlflow.log_param(f"config_{key}", value)

@@ -230,7 +230,11 @@ class FineTunePipeline:
 
         try:
             # Create nested run for inference
-            with mlflow.start_run(nested=True, run_name=f"{self.run_name}_inference"):
+            run_name = f"{self.run_name}_inferencing"
+            # Enable system metrics logging
+            mlflow.enable_system_metrics_logging()
+            print("--- ✅ MLflow system metrics logging enabled. ---")
+            with mlflow.start_run(nested=True, run_name=run_name):
                 inference_start_time = time.time()
                 mlflow.log_param("phase", "inference")
 
@@ -245,20 +249,19 @@ class FineTunePipeline:
                 mlflow.log_metric("inference_duration_seconds", inference_duration)
                 mlflow.log_metric("inference_duration_minutes", inference_duration / 60)
 
-                # Log inference output as artifact
-                output_file = "inferencer_output.jsonl"
-                if Path(output_file).exists():
-                    mlflow.log_artifact(output_file, "inference_outputs")
+                # # Log inference output as artifact
+                # output_file = "inferencer_output.jsonl"
+                # if Path(output_file).exists():
+                #     mlflow.log_artifact(output_file, "inference_outputs")
 
-                    # Count number of inferences
-                    with open(output_file, "r") as f:
-                        inference_count = sum(1 for _ in f)
-                    mlflow.log_metric("total_inferences", inference_count)
+                #     # Count number of inferences
+                #     with open(output_file, "r") as f:
+                #         inference_count = sum(1 for _ in f)
+                #     mlflow.log_metric("total_inferences", inference_count)
 
                 inference_results = {
                     "status": "success",
                     "duration_seconds": inference_duration,
-                    "output_file": output_file,
                 }
 
                 print(
