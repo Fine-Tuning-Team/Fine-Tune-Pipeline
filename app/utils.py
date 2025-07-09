@@ -78,20 +78,33 @@ def push_dataset_to_huggingface(repo_id: str, dataset_path: str):
     Args:
         repo_id (str): The repository ID on HuggingFace Hub (e.g., 'username/repo_name').
         dataset_path (str): Path to the dataset folder or file.
+    
+    Supported formats: .jsonl, .json, .xlsx
     """
-    # HF support other types as well, but we are only supporting jsonl for now
+    # Determine file type based on extension
     if dataset_path.endswith(".jsonl"):
         file_type = "json"
+        dataset = load_dataset(
+            file_type,
+            data_files=dataset_path,
+            split="train",
+        )
+    elif dataset_path.endswith(".json"):
+        file_type = "json"
+        dataset = load_dataset(
+            file_type,
+            data_files=dataset_path,
+            split="train",
+        )
+    elif dataset_path.endswith(".xlsx"):
+        # For Excel files, read with pandas and convert to HuggingFace Dataset
+        df = pd.read_excel(dataset_path)
+        dataset = Dataset.from_pandas(df)
     else:
         raise NotImplementedError(
-            "Unsupported dataset file type. Only .jsonl is supported yet."
+            "Unsupported dataset file type. Supported formats: .jsonl, .json, .xlsx"
         )
-    # Convert the dataset to a HuggingFace Dataset
-    dataset = load_dataset(
-        file_type,
-        data_files=dataset_path,
-        split="train",
-    )
+    
     # Check if the dataset is an IterableDataset or IterableDatasetDict which dont support pushing
     if isinstance(dataset, (IterableDataset, IterableDatasetDict)):
         raise NotImplementedError(
