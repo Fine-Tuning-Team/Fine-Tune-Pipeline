@@ -188,7 +188,7 @@ class Inferencer:
         print("--- ✅ Model set for inference. ---")
 
         if run_name is not None:
-            self.config.run_name = run_name
+            self.run_name = run_name
         else:
             self.run_name = setup_run_name(
                 name=self.config.run_name,
