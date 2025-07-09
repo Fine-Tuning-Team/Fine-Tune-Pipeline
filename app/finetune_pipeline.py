@@ -64,6 +64,7 @@ class FineTunePipeline:
 
     def setup_mlflow(self) -> None:
         """Setup MLflow tracking server and experiment."""
+        print("--- ⏳ Setting up MLflow ---")
         try:
             # Set tracking URI
             mlflow.set_tracking_uri(self.mlflow_config.tracking_uri)
@@ -104,6 +105,7 @@ class FineTunePipeline:
 
     def start_mlflow_run(self) -> None:
         """Start MLflow run for the entire pipeline."""
+        print("--- ⏳ Starting MLflow run ---")
         try:
             mlflow.start_run(experiment_id=self.experiment_id, run_name=self.run_name)
             active_run = mlflow.active_run()
@@ -127,6 +129,7 @@ class FineTunePipeline:
 
     def log_configuration_to_mlflow(self) -> None:
         """Log all configuration parameters to MLflow."""
+        print("--- ⏳ Logging configuration to MLflow ---")
         try:
             # Get all config sections
             finetuner_config = self.config_manager.get_section("fine_tuner")
