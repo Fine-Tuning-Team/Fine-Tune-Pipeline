@@ -240,7 +240,7 @@ class FineTunePipeline:
 
                 # Initialize and run inferencer
                 self.inferencer = Inferencer(config_manager=self.config_manager)
-                self.inferencer.run(run_name=run_name)
+                inference_count = self.inferencer.run(run_name=run_name)
 
                 inference_end_time = time.time()
                 inference_duration = inference_end_time - inference_start_time
@@ -248,20 +248,11 @@ class FineTunePipeline:
                 # Log inference metrics
                 mlflow.log_metric("inference_duration_seconds", inference_duration)
                 mlflow.log_metric("inference_duration_minutes", inference_duration / 60)
-
-                # # Log inference output as artifact
-                # output_file = "inferencer_output.jsonl"
-                # if Path(output_file).exists():
-                #     mlflow.log_artifact(output_file, "inference_outputs")
-
-                #     # Count number of inferences
-                #     with open(output_file, "r") as f:
-                #         inference_count = sum(1 for _ in f)
-                #     mlflow.log_metric("total_inferences", inference_count)
-
+                
                 inference_results = {
                     "status": "success",
                     "duration_seconds": inference_duration,
+                    "inference_count": inference_count,
                 }
 
                 print(
