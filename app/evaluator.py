@@ -182,9 +182,19 @@ class Evaluator:
 
         # Get token usage for OpenAI
         token_usage_result = self.evaluation_results.total_tokens()
+        
+        # Handle case where token usage is None or empty
+        if token_usage_result is None:
+            return []
+        
         token_usage: list[TokenUsage] = (
             token_usage_result if isinstance(token_usage_result, list) else [token_usage_result]
         )
+        
+        # Handle case where token_usage is empty
+        if not token_usage:
+            return []
+        
         cost_per_million_input_tokens = self.config.cost_per_million_input_tokens
         cost_per_million_output_tokens = self.config.cost_per_million_output_tokens
 
@@ -193,7 +203,7 @@ class Evaluator:
                 "input_tokens": token_usage_item.input_tokens,
                 "output_tokens": token_usage_item.output_tokens,
                 "cost": token_usage_item.cost(cost_per_million_input_tokens*10e-6, cost_per_million_output_tokens*10e-6)
-            } for token_usage_item in token_usage
+            } for token_usage_item in token_usage if token_usage_item is not None
         ]
         return total_token_usage_and_cost
 
@@ -314,8 +324,12 @@ class Evaluator:
         )
 
         # Get token count and cost
-        token_count_and_cost = self.get_token_count_and_cost()
-        print(f"--- 💲 Token count and cost: {token_count_and_cost} ---")
+        try:
+            token_count_and_cost = self.get_token_count_and_cost()
+            print(f"--- 💲 Token count and cost: {token_count_and_cost} ---")
+        except Exception as e:
+            print(f"--- ⚠️ Could not get token count and cost: {e} ---")
+            token_count_and_cost = []
 
         # Save results
         self.save_results()
