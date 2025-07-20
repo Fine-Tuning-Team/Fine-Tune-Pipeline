@@ -11,6 +11,7 @@ import os
 import time
 from huggingface_hub import login
 import mlflow 
+import re
 
 from config_manager import FineTunerConfig, InferencerConfig, EvaluatorConfig
 
@@ -136,3 +137,13 @@ def log_configurations_to_mlflow(config_object: FineTunerConfig | InferencerConf
         )
     for key, value in config_object.__dict__.items():
         mlflow.log_param(f"config_{key}", value)
+
+    
+def sanitize_name(name: str) -> str:
+    """
+    Sanitize metric name to allow only alphanumeric, underscore, dash, period, space, colon, and slash.
+    Replace '=' with ':' and all other disallowed characters with '_'.
+    """
+    name = name.replace("=", ":")
+    # Allowed: a-zA-Z0-9 _-.:/ (space)
+    return re.sub(r"[^a-zA-Z0-9_\-\. :/]", "_", name)

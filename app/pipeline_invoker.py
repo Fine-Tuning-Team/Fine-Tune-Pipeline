@@ -15,7 +15,7 @@ from config_manager import PipelineConfig, get_config_manager, MLFlowConfig
 from finetuner import FineTune
 from inferencer import Inferencer
 from evaluator import Evaluator
-from utils import setup_run_name
+from utils import sanitize_name, setup_run_name
 from version import PIPELINE_VERSION
 
 
@@ -297,10 +297,11 @@ class FineTunePipeline:
                 # Log evaluation results
                 summary_results = self.evaluator.get_summary_results()
                 for metric_name, metric_value in summary_results.items():
+                    safe_metric_name = sanitize_name(metric_name)
                     if isinstance(metric_value, (int, float)):
-                        mlflow.log_metric(f"eval_{metric_name}", metric_value)
+                        mlflow.log_metric(f"eval_{safe_metric_name}", metric_value)
                     else:
-                        mlflow.log_param(f"eval_{metric_name}", str(metric_value))
+                        mlflow.log_param(f"eval_{safe_metric_name}", str(metric_value))
 
                 # # Log evaluation artifacts
                 # detailed_file = "evaluator_output_detailed.xlsx"
