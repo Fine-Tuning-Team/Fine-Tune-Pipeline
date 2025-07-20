@@ -24,10 +24,12 @@ from ragas.metrics import (
     Metric,
 )
 from ragas.cost import get_token_usage_for_openai, TokenUsage
+import mlflow
+import mlflow.data
 
 # Local imports
 from config_manager import get_config_manager, EvaluatorConfig
-from utils import setup_run_name, setup_openai_key, login_huggingface, push_dataset_to_huggingface
+from utils import log_configurations_to_mlflow, setup_run_name, setup_openai_key, login_huggingface, push_dataset_to_huggingface
 
 
 class Evaluator:
@@ -300,6 +302,16 @@ class Evaluator:
             )
         print(f"--- ✅ Run name set to: {self.run_name} ---")
 
+        if mlflow.active_run() is not None:
+            try:
+                # Log configurations
+                log_configurations_to_mlflow(self.config)
+
+                # Run name logging
+                mlflow.log_param("run_name", self.run_name)
+            except Exception as e:
+                print(f"--- ⚠️ Warning: Failed to log initial parameters: {e} ---")
+                
         # Load the Ragas metrics functions based on the configuration
         self.set_ragas_metrics()
         print(f"--- ✅ Loaded Ragas metrics: {self.config.metrics} ---")
