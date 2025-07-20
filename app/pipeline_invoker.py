@@ -11,13 +11,12 @@ import mlflow.data
 from mlflow import MlflowClient
 
 # Local imports
-from config_manager import get_config_manager, MLFlowConfig
+from config_manager import PipelineConfig, get_config_manager, MLFlowConfig
 from finetuner import FineTune
 from inferencer import Inferencer
 from evaluator import Evaluator
 from utils import setup_run_name
-
-PIPELINE_VERSION = "1.0.0"
+from version import PIPELINE_VERSION
 
 
 class FineTunePipeline:
@@ -29,15 +28,16 @@ class FineTunePipeline:
     def __init__(
         self,
         config_path: str = "config.toml",
-        enable_finetuning: bool = True,
-        enable_inference: bool = True,
-        enable_evaluation: bool = True,
-        stop_after_finetuning: bool = False,
-        stop_after_inference: bool = False,
+        # enable_finetuning: bool = True,
+        # enable_inference: bool = True,
+        # enable_evaluation: bool = True,
+        # stop_after_finetuning: bool = False,
+        # stop_after_inference: bool = False,
     ):
         """Initialize the pipeline with configuration and phase control."""
         self.config_manager = get_config_manager(config_path)
         self.mlflow_config = MLFlowConfig.from_config(self.config_manager)
+        self.pipeline_config = PipelineConfig.from_config(self.config_manager)
 
         # Pipeline components
         self.finetuner = None
@@ -56,11 +56,11 @@ class FineTunePipeline:
         self.pipeline_results = {}
 
         # Pipeline control flags
-        self.enable_finetuning = enable_finetuning
-        self.enable_inference = enable_inference
-        self.enable_evaluation = enable_evaluation
-        self.stop_after_finetuning = stop_after_finetuning
-        self.stop_after_inference = stop_after_inference
+        self.enable_finetuning = self.pipeline_config.enable_finetuning
+        self.enable_inference = self.pipeline_config.enable_inference
+        self.enable_evaluation = self.pipeline_config.enable_evaluation
+        self.stop_after_finetuning = self.pipeline_config.stop_after_finetuning
+        self.stop_after_inference = self.pipeline_config.stop_after_inference
 
     def setup_mlflow(self) -> None:
         """Setup MLflow tracking server and experiment."""
@@ -517,11 +517,11 @@ def main():
     try:
         pipeline = FineTunePipeline(
             config_path=args.config,
-            enable_finetuning=not args.skip_finetuning,
-            enable_inference=not args.skip_inference,
-            enable_evaluation=not args.skip_evaluation,
-            stop_after_finetuning=args.stop_after_finetuning,
-            stop_after_inference=args.stop_after_inference,
+            # enable_finetuning=not args.skip_finetuning,
+            # enable_inference=not args.skip_inference,
+            # enable_evaluation=not args.skip_evaluation,
+            # stop_after_finetuning=args.stop_after_finetuning,
+            # stop_after_inference=args.stop_after_inference,
         )
         results = pipeline.run_pipeline()
 
