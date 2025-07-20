@@ -9,6 +9,7 @@ from datasets import (
     IterableDataset,
     IterableDatasetDict,
 )
+import mlflow.data.huggingface_dataset
 from ragas import evaluate
 from ragas.dataset_schema import EvaluationResult
 from ragas.embeddings import embedding_factory
@@ -29,7 +30,7 @@ import mlflow.data
 
 # Local imports
 from config_manager import get_config_manager, EvaluatorConfig
-from utils import log_configurations_to_mlflow, setup_run_name, setup_openai_key, login_huggingface, push_dataset_to_huggingface
+from utils import load_huggingface_dataset, log_configurations_to_mlflow, setup_run_name, setup_openai_key, login_huggingface, push_dataset_to_huggingface
 
 
 class Evaluator:
@@ -233,7 +234,7 @@ class Evaluator:
             output_file_path = os.path.join("", self.OUTPUT_FILE_NAME_DETAILED)
             detailed_df.to_excel(output_file_path, index=True)
 
-    def push_results_to_huggingface(self) -> None:
+    def push_results_to_huggingface(self) -> tuple[str, str]:
         """
         Push the evaluation results to HuggingFace Hub.
         """
@@ -276,10 +277,11 @@ class Evaluator:
                 print(f"--- ✅ Detailed results pushed to {detailed_repo_id} ---")
             else:
                 print(f"--- ⚠️ Detailed file {self.OUTPUT_FILE_NAME_DETAILED} not found, skipping push ---")
-                
+            # Return the repository IDs for further use
+            return summary_repo_id, detailed_repo_id
         except Exception as e:
             print(f"--- ❌ Error pushing results to HuggingFace Hub: {e} ---")
-            raise
+            raise e
 
     def run(self, run_name: str | None = None) -> None:
         """
@@ -287,9 +289,11 @@ class Evaluator:
         """
         # Login to Hugging Face
         login_huggingface()
+        print("--- ✅ Login to Hugging Face Hub successful. ---")
 
         # Setup openai key
         setup_openai_key()
+        print("--- ✅ OpenAI API key setup successful. ---")
 
         # Setup run name
         if run_name is not None:
@@ -350,9 +354,24 @@ class Evaluator:
         )
 
         # Push results to HuggingFace Hub
-        self.push_results_to_huggingface()
+        self.summary_dataset_id, self.detailed_dataset_id = self.push_results_to_huggingface()
         print(f"--- ✅ Results pushed to HuggingFace Hub ---")
 
+        # Load datasets from huggingface
+        summary_dataset = load_huggingface_dataset(self.summary_dataset_id)
+        summary_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(summary_dataset)
+        print(f"--- ✅ Summary dataset loaded from {self.summary_dataset_id} ---")
+        detailed_dataset = load_huggingface_dataset(self.detailed_dataset_id)
+        detailed_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(detailed_dataset)
+        print(f"--- ✅ Detailed dataset loaded from {self.detailed_dataset_id} ---")
+        
+        # Log the datasets to MLflow
+        if mlflow.active_run() is not None:
+            try:
+                mlflow.log_input(summary_dataset_for_mlflow, "summary_dataset")
+                mlflow.log_input(detailed_dataset_for_mlflow, "detailed_dataset")
+            except Exception as e:
+                print(f"--- ⚠️ Warning: Failed to log datasets: {e} ---")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate the language model output")
