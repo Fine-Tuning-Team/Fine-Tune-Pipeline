@@ -205,13 +205,6 @@ class Inferencer:
                 # Run name logging
                 mlflow.log_param("run_name", self.run_name)
 
-                # # Model logging
-                # base_model_url = self.HUGGINGFACE_BASE_URL + self.config.base_model_id
-                # mlflow.log_param("base_model_url", base_model_url)
-                # mlflow.log_param(
-                #     "base_model_name", self.config.base_model_id.split("/")[-1]
-                # )
-
                 # Dataset logging
                 mlflow.log_input(testing_dataset_for_mlflow, context="testing")
             except Exception as e:
@@ -224,13 +217,31 @@ class Inferencer:
         ):
             response = self.generate_a_response(data_row)
             self.save_datarow_to_jsonl(self.OUTPUT_FILE_NAME, response)
+        # Push responses to HuggingFace Hub
+        self.inferencer_output_dataset_id = f"{self.config.hf_user_id}/{self.run_name}"
         push_dataset_to_huggingface(
-            repo_id=f"{self.config.hf_user_id}/{self.run_name}",
+            repo_id=self.inferencer_output_dataset_id,
             dataset_path=self.OUTPUT_FILE_NAME,
         )
         print(
             f"--- ✅ Responses saved to {self.OUTPUT_FILE_NAME} and pushed to HuggingFace Hub under {self.config.hf_user_id}/{self.run_name} ---"
         )
+        # Log the inference output dataset to MLflow
+        inferencer_output_dataset = load_huggingface_dataset(self.inferencer_output_dataset_id)
+        print(f"--- ✅ Loaded inference output dataset from HuggingFace Hub ---")
+        inferencer_output_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
+            inferencer_output_dataset, self.inferencer_output_dataset_id
+        )
+        print("--- ✅ Converted inference output dataset for MLflow logging ---")   
+        if mlflow.active_run() is not None:
+            try:
+                # Log the inference output dataset to MLflow
+                mlflow.log_input(
+                    inferencer_output_dataset_for_mlflow, context="inference_output"
+                )
+            except Exception as e:
+                print(f"--- ⚠️ Warning: Failed to log inference output dataset: {e} ---")
+        print(f"--- ✅ Inference output dataset logged to MLflow under {self.inferencer_output_dataset_id} ---")
         print("--- ✅ Inference completed successfully. ---")
 
         output_file_line_count = -1
