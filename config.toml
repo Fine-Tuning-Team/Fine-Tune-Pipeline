@@ -90,3 +90,10 @@ experiment_name = "full-pipeline-experiment"  # MLflow experiment name
 run_name = "v0.22.0"  # Leave null for auto-generated name
 run_name_prefix = ""
 run_name_suffix = ""  # Suffix to append to run name
+
+[pipeline]
+enable_finetuning = true  # Enable fine-tuning
+enable_inference = true  # Enable inference
+enable_evaluation = true  # Enable evaluation
+stop_after_finetuning = false  # Stop after fine-tuning
+stop_after_inference = false  # Stop after inference

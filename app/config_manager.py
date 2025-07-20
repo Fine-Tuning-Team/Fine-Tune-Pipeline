@@ -229,6 +229,21 @@ class MLFlowConfig:
         return cls(**section)
 
 
+@dataclass
+class PipelineConfig:
+    enable_finetuning: bool
+    enable_inference: bool
+    enable_evaluation: bool
+    stop_after_finetuning: bool
+    stop_after_inference: bool
+
+    @classmethod
+    def from_config(cls, config_manager: ConfigManager):
+        config_manager.validate_dataclass_config("pipeline", cls)
+        section = config_manager.get_section("pipeline")
+        return cls(**section)
+    
+    
 # Global config instance (singleton pattern)
 _config_manager = None
 
