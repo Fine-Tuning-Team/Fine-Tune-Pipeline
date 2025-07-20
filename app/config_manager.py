@@ -242,8 +242,8 @@ class PipelineConfig:
         config_manager.validate_dataclass_config("pipeline", cls)
         section = config_manager.get_section("pipeline")
         return cls(**section)
-    
-    
+
+
 # Global config instance (singleton pattern)
 _config_manager = None
 

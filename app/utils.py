@@ -10,7 +10,7 @@ import pandas as pd
 import os
 import time
 from huggingface_hub import login
-import mlflow 
+import mlflow
 import re
 
 from config_manager import FineTunerConfig, InferencerConfig, EvaluatorConfig
@@ -79,7 +79,7 @@ def push_dataset_to_huggingface(repo_id: str, dataset_path: str):
     Args:
         repo_id (str): The repository ID on HuggingFace Hub (e.g., 'username/repo_name').
         dataset_path (str): Path to the dataset folder or file.
-    
+
     Supported formats: .jsonl, .json, .xlsx
     """
     # Determine file type based on extension
@@ -105,7 +105,7 @@ def push_dataset_to_huggingface(repo_id: str, dataset_path: str):
         raise NotImplementedError(
             "Unsupported dataset file type. Supported formats: .jsonl, .json, .xlsx"
         )
-    
+
     # Check if the dataset is an IterableDataset or IterableDatasetDict which dont support pushing
     if isinstance(dataset, (IterableDataset, IterableDatasetDict)):
         raise NotImplementedError(
@@ -130,15 +130,19 @@ def setup_openai_key():
         raise ValueError("OpenAI API key is not set in the environment variables.")
 
 
-def log_configurations_to_mlflow(config_object: FineTunerConfig | InferencerConfig | EvaluatorConfig):
-    if not isinstance(config_object, (FineTunerConfig, InferencerConfig, EvaluatorConfig)):
+def log_configurations_to_mlflow(
+    config_object: FineTunerConfig | InferencerConfig | EvaluatorConfig,
+):
+    if not isinstance(
+        config_object, (FineTunerConfig, InferencerConfig, EvaluatorConfig)
+    ):
         raise TypeError(
             "config_object must be an instance of FineTunerConfig, InferencerConfig, or EvaluatorConfig"
         )
     for key, value in config_object.__dict__.items():
         mlflow.log_param(f"config_{key}", value)
 
-    
+
 def sanitize_name(name: str) -> str:
     """
     Sanitize metric name to allow only alphanumeric, underscore, dash, period, space, colon, and slash.

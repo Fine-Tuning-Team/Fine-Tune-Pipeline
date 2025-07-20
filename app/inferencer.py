@@ -5,7 +5,7 @@ import argparse
 import json
 import os
 from tqdm import tqdm
-import mlflow 
+import mlflow
 import mlflow.data
 
 
@@ -227,12 +227,14 @@ class Inferencer:
             f"--- ✅ Responses saved to {self.OUTPUT_FILE_NAME} and pushed to HuggingFace Hub under {self.config.hf_user_id}/{self.run_name} ---"
         )
         # Log the inference output dataset to MLflow
-        inferencer_output_dataset = load_huggingface_dataset(self.inferencer_output_dataset_id)
+        inferencer_output_dataset = load_huggingface_dataset(
+            self.inferencer_output_dataset_id
+        )
         print(f"--- ✅ Loaded inference output dataset from HuggingFace Hub ---")
         inferencer_output_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
             inferencer_output_dataset, self.inferencer_output_dataset_id
         )
-        print("--- ✅ Converted inference output dataset for MLflow logging ---")   
+        print("--- ✅ Converted inference output dataset for MLflow logging ---")
         if mlflow.active_run() is not None:
             try:
                 # Log the inference output dataset to MLflow
@@ -241,7 +243,9 @@ class Inferencer:
                 )
             except Exception as e:
                 print(f"--- ⚠️ Warning: Failed to log inference output dataset: {e} ---")
-        print(f"--- ✅ Inference output dataset logged to MLflow under {self.inferencer_output_dataset_id} ---")
+        print(
+            f"--- ✅ Inference output dataset logged to MLflow under {self.inferencer_output_dataset_id} ---"
+        )
         print("--- ✅ Inference completed successfully. ---")
 
         output_file_line_count = -1
@@ -249,6 +253,7 @@ class Inferencer:
             with open(self.OUTPUT_FILE_NAME, "r", encoding="utf-8") as f:
                 output_file_line_count = sum(1 for _ in f)
         return output_file_line_count
+
 
 if __name__ == "__main__":
     print("--- Starting the Inferencer ---")

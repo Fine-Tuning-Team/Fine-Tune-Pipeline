@@ -30,7 +30,14 @@ import mlflow.data
 
 # Local imports
 from config_manager import get_config_manager, EvaluatorConfig
-from utils import load_huggingface_dataset, log_configurations_to_mlflow, setup_run_name, setup_openai_key, login_huggingface, push_dataset_to_huggingface
+from utils import (
+    load_huggingface_dataset,
+    log_configurations_to_mlflow,
+    setup_run_name,
+    setup_openai_key,
+    login_huggingface,
+    push_dataset_to_huggingface,
+)
 
 
 class Evaluator:
@@ -173,7 +180,7 @@ class Evaluator:
         # Convert the evaluation results to a dictionary format
         summary = self.evaluation_results._repr_dict
         return summary
-    
+
     def get_token_count_and_cost(self) -> list:
         """
         Get the token count and cost for the evaluation.
@@ -185,19 +192,21 @@ class Evaluator:
 
         # Get token usage for OpenAI
         token_usage_result = self.evaluation_results.total_tokens()
-        
+
         # Handle case where token usage is None or empty
         if token_usage_result is None:
             return []
-        
+
         token_usage: list[TokenUsage] = (
-            token_usage_result if isinstance(token_usage_result, list) else [token_usage_result]
+            token_usage_result
+            if isinstance(token_usage_result, list)
+            else [token_usage_result]
         )
-        
+
         # Handle case where token_usage is empty
         if not token_usage:
             return []
-        
+
         cost_per_million_input_tokens = self.config.cost_per_million_input_tokens
         cost_per_million_output_tokens = self.config.cost_per_million_output_tokens
 
@@ -205,8 +214,13 @@ class Evaluator:
             {
                 "input_tokens": token_usage_item.input_tokens,
                 "output_tokens": token_usage_item.output_tokens,
-                "cost": token_usage_item.cost(cost_per_million_input_tokens*10e-6, cost_per_million_output_tokens*10e-6)
-            } for token_usage_item in token_usage if token_usage_item is not None
+                "cost": token_usage_item.cost(
+                    cost_per_million_input_tokens * 10e-6,
+                    cost_per_million_output_tokens * 10e-6,
+                ),
+            }
+            for token_usage_item in token_usage
+            if token_usage_item is not None
         ]
         return total_token_usage_and_cost
 
@@ -238,10 +252,10 @@ class Evaluator:
         """
         Push the evaluation results to HuggingFace Hub.
         """
-        
+
         if not self.run_name:
             raise ValueError("Run name is not set.")
-        
+
         if self.evaluation_results is None:
             raise ValueError(
                 "Evaluation results are not available. Please run the evaluation first."
@@ -250,33 +264,36 @@ class Evaluator:
         # Determine repository names
         summary_repo_name = f"{self.run_name}_summary"
         detailed_repo_name = f"{self.run_name}_detailed"
-        
+
         # Create full repository IDs
         summary_repo_id = f"{self.config.hf_user_id}/{summary_repo_name}"
         detailed_repo_id = f"{self.config.hf_user_id}/{detailed_repo_name}"
-        
+
         try:
             # Push summary results (JSON file)
             if os.path.exists(self.OUTPUT_FILE_NAME_SUMMARY):
                 print(f"--- 📤 Pushing summary results to {summary_repo_id} ---")
                 push_dataset_to_huggingface(
-                    repo_id=summary_repo_id,
-                    dataset_path=self.OUTPUT_FILE_NAME_SUMMARY
+                    repo_id=summary_repo_id, dataset_path=self.OUTPUT_FILE_NAME_SUMMARY
                 )
                 print(f"--- ✅ Summary results pushed to {summary_repo_id} ---")
             else:
-                print(f"--- ⚠️ Summary file {self.OUTPUT_FILE_NAME_SUMMARY} not found, skipping push ---")
-            
+                print(
+                    f"--- ⚠️ Summary file {self.OUTPUT_FILE_NAME_SUMMARY} not found, skipping push ---"
+                )
+
             # Push detailed results (Excel file)
             if os.path.exists(self.OUTPUT_FILE_NAME_DETAILED):
                 print(f"--- 📤 Pushing detailed results to {detailed_repo_id} ---")
                 push_dataset_to_huggingface(
                     repo_id=detailed_repo_id,
-                    dataset_path=self.OUTPUT_FILE_NAME_DETAILED
+                    dataset_path=self.OUTPUT_FILE_NAME_DETAILED,
                 )
                 print(f"--- ✅ Detailed results pushed to {detailed_repo_id} ---")
             else:
-                print(f"--- ⚠️ Detailed file {self.OUTPUT_FILE_NAME_DETAILED} not found, skipping push ---")
+                print(
+                    f"--- ⚠️ Detailed file {self.OUTPUT_FILE_NAME_DETAILED} not found, skipping push ---"
+                )
             # Return the repository IDs for further use
             return summary_repo_id, detailed_repo_id
         except Exception as e:
@@ -315,7 +332,7 @@ class Evaluator:
                 mlflow.log_param("run_name", self.run_name)
             except Exception as e:
                 print(f"--- ⚠️ Warning: Failed to log initial parameters: {e} ---")
-                
+
         # Load the Ragas metrics functions based on the configuration
         self.set_ragas_metrics()
         print(f"--- ✅ Loaded Ragas metrics: {self.config.metrics} ---")
@@ -354,17 +371,23 @@ class Evaluator:
         )
 
         # Push results to HuggingFace Hub
-        self.summary_dataset_id, self.detailed_dataset_id = self.push_results_to_huggingface()
+        self.summary_dataset_id, self.detailed_dataset_id = (
+            self.push_results_to_huggingface()
+        )
         print(f"--- ✅ Results pushed to HuggingFace Hub ---")
 
         # Load datasets from huggingface
         summary_dataset = load_huggingface_dataset(self.summary_dataset_id)
-        summary_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(summary_dataset)
+        summary_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(
+            summary_dataset
+        )
         print(f"--- ✅ Summary dataset loaded from {self.summary_dataset_id} ---")
         detailed_dataset = load_huggingface_dataset(self.detailed_dataset_id)
-        detailed_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(detailed_dataset)
+        detailed_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(
+            detailed_dataset
+        )
         print(f"--- ✅ Detailed dataset loaded from {self.detailed_dataset_id} ---")
-        
+
         # Log the datasets to MLflow
         if mlflow.active_run() is not None:
             try:
@@ -372,6 +395,7 @@ class Evaluator:
                 mlflow.log_input(detailed_dataset_for_mlflow, "detailed_dataset")
             except Exception as e:
                 print(f"--- ⚠️ Warning: Failed to log datasets: {e} ---")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate the language model output")

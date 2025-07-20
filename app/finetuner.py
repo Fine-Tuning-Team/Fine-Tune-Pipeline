@@ -16,7 +16,12 @@ from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 # Local imports
 from config_manager import get_config_manager, FineTunerConfig
-from utils import load_huggingface_dataset, log_configurations_to_mlflow, login_huggingface, setup_run_name
+from utils import (
+    load_huggingface_dataset,
+    log_configurations_to_mlflow,
+    login_huggingface,
+    setup_run_name,
+)
 
 
 class FineTune:
@@ -223,9 +228,9 @@ class FineTune:
         #     + self.HUGGINGFACE_DATASETS_PART
         #     + self.config.training_data_id
         # )
-        training_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface( # type: ignore
+        training_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
             training_dataset, self.config.training_data_id
-        ) 
+        )
 
         validation_dataset_for_mlflow = None
         if self.config.validation_data_id is not None:
@@ -238,7 +243,7 @@ class FineTune:
             #     + self.config.validation_data_id
             # )
             validation_dataset_for_mlflow = (
-                mlflow.data.huggingface_dataset.from_huggingface(   # type: ignore
+                mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
                     validation_dataset, self.config.validation_data_id
                 )
             )
