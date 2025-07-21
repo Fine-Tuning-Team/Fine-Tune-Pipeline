@@ -223,11 +223,6 @@ class FineTune:
 
         # Load training and validation data
         training_dataset = load_huggingface_dataset(self.config.training_data_id)
-        # source_of_training_dataset_for_mlflow = (
-        #     self.HUGGINGFACE_BASE_URL
-        #     + self.HUGGINGFACE_DATASETS_PART
-        #     + self.config.training_data_id
-        # )
         training_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
             training_dataset, self.config.training_data_id
         )
@@ -237,11 +232,6 @@ class FineTune:
             validation_dataset = load_huggingface_dataset(
                 self.config.validation_data_id
             )
-            # source_of_validation_dataset_for_mlflow = (
-            #     self.HUGGINGFACE_BASE_URL
-            #     + self.HUGGINGFACE_DATASETS_PART
-            #     + self.config.validation_data_id
-            # )
             validation_dataset_for_mlflow = (
                 mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
                     validation_dataset, self.config.validation_data_id
@@ -264,30 +254,32 @@ class FineTune:
 
         # Data operations
         # strip doesnt work with batched=True, so we use batched=False
-        training_dataset = training_dataset.map(
+        processed_training_dataset = training_dataset.map(
             self.convert_a_data_row_to_conversation_format,
             remove_columns=self.get_columns_to_remove(
                 training_dataset, self.config.training_data_id
             ),
             batched=False,
         )
-        training_dataset = training_dataset.map(
+        processed_training_dataset = processed_training_dataset.map(
             self.apply_chat_template_to_conversations, batched=True
         )
         if (
             validation_dataset is not None
             and self.config.validation_data_id is not None
         ):
-            validation_dataset = validation_dataset.map(
+            processed_validation_dataset = validation_dataset.map(
                 self.convert_a_data_row_to_conversation_format,
                 remove_columns=self.get_columns_to_remove(
                     validation_dataset, self.config.validation_data_id
                 ),
                 batched=False,
             )
-            validation_dataset = validation_dataset.map(
+            processed_validation_dataset = processed_validation_dataset.map(
                 self.apply_chat_template_to_conversations, batched=True
             )
+        else:
+            processed_validation_dataset = None
         print("--- ✅ Data preprocessing completed. ---")
 
         if run_name is not None:
@@ -332,8 +324,8 @@ class FineTune:
         trainer = SFTTrainer(
             model=self.model,
             tokenizer=self.tokenizer,  # type: ignore
-            train_dataset=training_dataset,
-            eval_dataset=validation_dataset,
+            train_dataset=processed_training_dataset,
+            eval_dataset=processed_validation_dataset,
             dataset_text_field=self.TEXTS_KEY,  # type: ignore
             max_seq_length=self.config.max_sequence_length,  # type: ignore
             data_collator=DataCollatorForSeq2Seq(tokenizer=self.tokenizer),
