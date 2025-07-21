@@ -71,7 +71,7 @@ run_name_prefix = ""
 run_name_suffix = ""
 
 [evaluator]
-metrics = ["bleu_score", "rouge_score", "factual_correctness"]  # List of evaluation metrics
+metrics = ["bleu_score"]  # List of evaluation metrics
 # LIST OF SUPPORTED METRICS:
 # "bleu_score", "rouge_score", "factual_correctness", "semantic_similarity", "answer_accuracy", "answer_relevancy", "answer_correctness"
 # INFO: The "semantic_similarity" metric disables the token count and cost calculation
@@ -87,7 +87,7 @@ hf_user_id = "rtweera"  # Hugging Face user ID for repository creation
 [mlflow]
 tracking_uri = "https://33008a58-e51f-4442-994c-c4841203c6fb.e1-us-east-azure.choreoapps.dev"  # MLflow tracking server URI
 experiment_name = "full-pipeline-experiment"  # MLflow experiment name
-run_name = "v0.22.0"  # Leave null for auto-generated name
+run_name = "v0.27.0"  # Leave null for auto-generated name
 run_name_prefix = ""
 run_name_suffix = ""  # Suffix to append to run name
 
