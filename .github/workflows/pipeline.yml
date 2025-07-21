@@ -138,6 +138,7 @@ jobs:
           # Sync dependencies using uv
           echo "Installing dependencies with uv sync..."
           uv sync
+          echo "[DONE] Dependencies installed successfully with uv sync..."
 
           # Run the pipeline_invoker script with secrets
           echo "Running the pipeline_invoker script..."
@@ -153,7 +154,7 @@ jobs:
           exit 0
         fi
         
-        echo "Waiting for 1/2 minutes before terminating the pod..."
+        echo "Waiting for 30 seconds before terminating the pod..."
         sleep 30
 
         echo "Terminating pod $pod_id..."
