@@ -135,6 +135,9 @@ jobs:
           # Add uv to the PATH for the current session by sourcing the correct environment file
           source "$HOME/.local/bin/env"
 
+          # Set uv to copy mode to suppress hardlinking warning
+          export UV_LINK_MODE=copy
+
           # Sync dependencies using uv
           echo "Installing dependencies with uv sync..."
           uv sync
