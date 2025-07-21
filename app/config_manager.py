@@ -203,6 +203,9 @@ class EvaluatorConfig:
     run_name: str | None
     run_name_prefix: str
     run_name_suffix: str
+    cost_per_million_input_tokens: float
+    cost_per_million_output_tokens: float
+    hf_user_id: str  # Hugging Face user ID for repository creation
 
     @classmethod
     def from_config(cls, config_manager: ConfigManager):
@@ -223,6 +226,21 @@ class MLFlowConfig:
     def from_config(cls, config_manager: ConfigManager):
         config_manager.validate_dataclass_config("mlflow", cls)
         section = config_manager.get_section("mlflow")
+        return cls(**section)
+
+
+@dataclass
+class PipelineConfig:
+    enable_finetuning: bool
+    enable_inference: bool
+    enable_evaluation: bool
+    stop_after_finetuning: bool
+    stop_after_inference: bool
+
+    @classmethod
+    def from_config(cls, config_manager: ConfigManager):
+        config_manager.validate_dataclass_config("pipeline", cls)
+        section = config_manager.get_section("pipeline")
         return cls(**section)
 
 
