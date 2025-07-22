@@ -16,7 +16,8 @@ The `FineTune` class in `app/finetuner.py` handles the complete fine-tuning pipe
 - ✅ **LoRA Fine-Tuning**: Memory-efficient training with Low-Rank Adaptation
 - ✅ **4-bit/8-bit Quantization**: Reduce memory usage without sacrificing quality
 - ✅ **Chat Template Support**: Automatic formatting for conversational models
-- ✅ **Weights & Biases Integration**: Comprehensive experiment tracking
+- ✅ **MLflow Integration**: Comprehensive experiment tracking and model logging
+- ✅ **Weights & Biases Integration**: Additional experiment tracking capabilities
 - ✅ **Hub Integration**: Automatic model publishing to Hugging Face
 - ✅ **Gradient Checkpointing**: Memory optimization for large models
 - ✅ **Response-Only Training**: Train only on assistant responses
@@ -30,8 +31,9 @@ graph TD
     C --> D[LoRA Setup]
     D --> E[Training Loop]
     E --> F[Model Saving]
-    E --> G[W&B Logging]
-    F --> H[Hub Upload]
+    E --> G[MLflow Logging]
+    E --> H[W&B Logging]
+    F --> I[Hub Upload]
 ```
 
 ## Usage

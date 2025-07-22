@@ -4,9 +4,11 @@ The Fine-Tune Pipeline uses a TOML-based configuration system that allows you to
 
 ## Configuration Structure
 
-The configuration file is organized into three main sections:
+The configuration file is organized into four main sections:
 
 ```toml
+[mlflow]         # MLflow experiment tracking
+[pipeline]       # Pipeline orchestration settings
 [fine_tuner]     # Fine-tuning configuration
 [inferencer]     # Inference configuration  
 [evaluator]      # Evaluation configuration
@@ -34,6 +36,15 @@ wandb_project_name = "${WANDB_PROJECT}"
 
 === "Development Config"
     ```toml
+    [mlflow]
+    tracking_uri = "http://localhost:5000"
+    experiment_name = "dev-fine-tune-pipeline"
+    
+    [pipeline]
+    enable_finetuning = true
+    enable_inference = true
+    enable_evaluation = true
+    
     [fine_tuner]
     base_model_id = "unsloth/Qwen2.5-0.5B-Instruct-bnb-4bit"
     epochs = 1
@@ -43,6 +54,15 @@ wandb_project_name = "${WANDB_PROJECT}"
 
 === "Production Config"
     ```toml
+    [mlflow]
+    tracking_uri = "https://mlflow.example.com"
+    experiment_name = "prod-fine-tune-pipeline"
+    
+    [pipeline]
+    enable_finetuning = true
+    enable_inference = true
+    enable_evaluation = true
+    
     [fine_tuner]
     base_model_id = "unsloth/Llama-3.2-3B-Instruct-bnb-4bit"
     epochs = 5
