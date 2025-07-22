@@ -39,12 +39,12 @@ optimizer = "paged_adamw_8bit"
 weight_decay = 0.01
 lr_scheduler_type = "linear"
 seed = 42  # Random seed for reproducibility
-log_steps = 10  # Log every n steps
+log_steps = 1  # Log every n steps
 log_first_step = true
 save_steps = 20  # Save every n steps
 save_total_limit = 3  # Limit the number of saved checkpoints
 push_to_hub = true  # Push the model to Hugging Face Hub
-report_to = "wandb"  # Reporting tool, e.g., "wandb", "tensorboard", "none"  # Local directory to save the model and checkpoints
+report_to = "mlflow"  # Reporting tool, e.g., "wandb", "tensorboard", "none"  # Local directory to save the model and checkpoints
 packing = false  # Can make 5x training faster, for shorter sequences
 use_gradient_checkpointing = "unsloth"  # Can be true, false, or "unsloth"
 use_flash_attention = true
@@ -77,8 +77,9 @@ run_name_suffix = ""
 metrics = ["list", "of", "supported", "metrics"]  # List of evaluation metrics: Find in SUPPORTED_METRICS.md
 # LIST OF SUPPORTED METRICS:
 # "bleu_score", "rouge_score", "factual_correctness", "semantic_similarity", "answer_accuracy", "answer_relevancy", "answer_correctness"
+# INFO: The "semantic_similarity" metric disables the token count and cost calculation
 llm = "gpt-4o-mini"  # LLM for evaluation
-embedding = "text-embeddings-3-small"  # embedding model for semantic evaluation
+embedding = "text-embedding-3-small"  # embedding model for semantic evaluation
 run_name = "null"  # Leave null for random name; used for both dataset and mlflow
 run_name_prefix = ""
 run_name_suffix = ""
@@ -92,3 +93,10 @@ experiment_name = "fine-tuning-experiment"  # MLflow experiment name
 run_name = "null"  # Leave null for auto-generated name
 run_name_prefix = ""
 run_name_suffix = ""  # Suffix to append to run name
+
+[pipeline]
+enable_finetuning = true  # Enable fine-tuning
+enable_inference = true  # Enable inference
+enable_evaluation = true  # Enable evaluation
+stop_after_finetuning = false  # Stop after fine-tuning
+stop_after_inference = false  # Stop after inference
