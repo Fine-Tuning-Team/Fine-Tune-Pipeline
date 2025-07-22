@@ -10,11 +10,15 @@ import pandas as pd
 import os
 import time
 from huggingface_hub import login
+import mlflow
+import re
+
+from config_manager import FineTunerConfig, InferencerConfig, EvaluatorConfig
 
 
 def load_huggingface_dataset(
     dataset_id: str,
-) -> DatasetDict | Dataset | IterableDatasetDict | IterableDataset:
+) -> Dataset:
     """
     Load a dataset from Hugging Face. Whether the data is jsonl, csv, parquet or any other format, it will be loaded as a Hugging Face Dataset.
     Args:
@@ -23,11 +27,13 @@ def load_huggingface_dataset(
         datasets.arrow_dataset.Dataset: The loaded dataset.
     """
     try:
-        dataset = datasets.load_dataset(dataset_id)
+        dataset = datasets.load_dataset(dataset_id, split="train")
         if isinstance(dataset, dict):
             # If the dataset is a dictionary, return the first split
             return list(dataset.values())[0]
-        return dataset
+        if isinstance(dataset, Dataset):
+            return dataset
+        raise TypeError(f"Expected a Dataset, but got {type(dataset).__name__}")
     except Exception as e:
         raise ValueError(
             f"Failed to load dataset from Hugging Face with ID '{dataset_id}': {e}"
@@ -73,20 +79,33 @@ def push_dataset_to_huggingface(repo_id: str, dataset_path: str):
     Args:
         repo_id (str): The repository ID on HuggingFace Hub (e.g., 'username/repo_name').
         dataset_path (str): Path to the dataset folder or file.
+
+    Supported formats: .jsonl, .json, .xlsx
     """
-    # HF support other types as well, but we are only supporting jsonl for now
+    # Determine file type based on extension
     if dataset_path.endswith(".jsonl"):
         file_type = "json"
+        dataset = load_dataset(
+            file_type,
+            data_files=dataset_path,
+            split="train",
+        )
+    elif dataset_path.endswith(".json"):
+        file_type = "json"
+        dataset = load_dataset(
+            file_type,
+            data_files=dataset_path,
+            split="train",
+        )
+    elif dataset_path.endswith(".xlsx"):
+        # For Excel files, read with pandas and convert to HuggingFace Dataset
+        df = pd.read_excel(dataset_path)
+        dataset = Dataset.from_pandas(df)
     else:
         raise NotImplementedError(
-            "Unsupported dataset file type. Only .jsonl is supported yet."
+            "Unsupported dataset file type. Supported formats: .jsonl, .json, .xlsx"
         )
-    # Convert the dataset to a HuggingFace Dataset
-    dataset = load_dataset(
-        file_type,
-        data_files=dataset_path,
-        split="train",
-    )
+
     # Check if the dataset is an IterableDataset or IterableDatasetDict which dont support pushing
     if isinstance(dataset, (IterableDataset, IterableDatasetDict)):
         raise NotImplementedError(
@@ -109,3 +128,26 @@ def setup_openai_key():
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         raise ValueError("OpenAI API key is not set in the environment variables.")
+
+
+def log_configurations_to_mlflow(
+    config_object: FineTunerConfig | InferencerConfig | EvaluatorConfig,
+):
+    if not isinstance(
+        config_object, (FineTunerConfig, InferencerConfig, EvaluatorConfig)
+    ):
+        raise TypeError(
+            "config_object must be an instance of FineTunerConfig, InferencerConfig, or EvaluatorConfig"
+        )
+    for key, value in config_object.__dict__.items():
+        mlflow.log_param(f"config_{key}", value)
+
+
+def sanitize_name(name: str) -> str:
+    """
+    Sanitize metric name to allow only alphanumeric, underscore, dash, period, space, colon, and slash.
+    Replace '=' with ':' and all other disallowed characters with '_'.
+    """
+    name = name.replace("=", ":")
+    # Allowed: a-zA-Z0-9 _-.:/ (space)
+    return re.sub(r"[^a-zA-Z0-9_\-\. :/]", "_", name)

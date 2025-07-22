@@ -1,8 +1,8 @@
-name: Pipeline for Qwen2.5 LoRA
+name: Pipeline for Finetuning
 
 on:
   push:
-    branches: [ lora-qwen ]
+    branches: [ lora-qwen, lora-gemma ]
 
 jobs:
   deploy-and-connect:
@@ -11,6 +11,13 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+
+    - name: Exit early if merge commit
+      run: |
+        if git log -1 --pretty=%B | grep -iq "Merge"; then
+          echo "Merge commit detected. Skipping workflow."
+          exit 0
+        fi
 
     - name: Create RunPod Pod and Get ID
       id: create_pod
@@ -103,7 +110,7 @@ jobs:
         host: ${{ steps.get_connection.outputs.pod_ip }}
         username: root
         port: ${{ steps.get_connection.outputs.ssh_port }}
-        command_timeout: 20m
+        command_timeout: 300m
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           # Go to the workspace directory
@@ -117,10 +124,10 @@ jobs:
           REPO_NAME=$(basename ${{ github.repository }})
           cd "$REPO_NAME"
 
-          # Checkout the 'lora' branch
-          echo "Checking out 'lora' branch..."
-          git checkout lora
-          
+          # Checkout the current branch
+          echo "Checking out '${{ github.ref_name }}' branch..."
+          git checkout ${{ github.ref_name }}
+
           # Install the uv package manager
           echo "Installing uv package manager..."
           curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -128,16 +135,18 @@ jobs:
           # Add uv to the PATH for the current session by sourcing the correct environment file
           source "$HOME/.local/bin/env"
 
+          # Set uv to copy mode to suppress hardlinking warning
+          export UV_LINK_MODE=copy
+
           # Sync dependencies using uv
           echo "Installing dependencies with uv sync..."
           uv sync
+          echo "[DONE] Dependencies installed successfully with uv sync..."
 
-          # Run the finetuning script with secrets
-          echo "Running the finetuning script..."
-          uv run python app/finetuner.py --wandb-key "${{ secrets.WANDB_KEY }}" --hf-key "${{ secrets.HF_TOKEN }}"
-          echo "started Inferencer"
-          uv run python app/inferencer.py --hf-key "${{ secrets.HF_TOKEN }}"
-          echo "Finetuning script finished."
+          # Run the pipeline_invoker script with secrets
+          echo "Running the pipeline_invoker script..."
+          uv run python app/pipeline_invoker.py --hf-key "${{ secrets.HF_TOKEN }}" --openai-key "${{ secrets.OPENAI_API_KEY }}"
+          echo "Pipeline invoker script finished."
           
     - name: Terminate RunPod Pod
       if: always()
@@ -148,7 +157,7 @@ jobs:
           exit 0
         fi
         
-        echo "Waiting for 1/2 minutes before terminating the pod..."
+        echo "Waiting for 30 seconds before terminating the pod..."
         sleep 30
 
         echo "Terminating pod $pod_id..."

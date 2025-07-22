@@ -5,6 +5,8 @@ from unsloth.chat_templates import get_chat_template, train_on_responses_only
 import argparse
 import os
 import wandb
+import mlflow
+import mlflow.data
 
 from datasets import Dataset, DatasetDict, IterableDataset, IterableDatasetDict
 from trl import SFTTrainer
@@ -14,7 +16,12 @@ from transformers.tokenization_utils_base import PreTrainedTokenizerBase
 
 # Local imports
 from config_manager import get_config_manager, FineTunerConfig
-from utils import load_huggingface_dataset, login_huggingface, setup_run_name
+from utils import (
+    load_huggingface_dataset,
+    log_configurations_to_mlflow,
+    login_huggingface,
+    setup_run_name,
+)
 
 
 class FineTune:
@@ -32,6 +39,10 @@ class FineTune:
         self.run_name = None
 
         self.MODEL_LOCAL_OUTPUT_DIR = "./models/fine_tuned"
+        self.HUGGINGFACE_BASE_URL = "https://huggingface.co/"
+        self.HUGGINGFACE_DATASETS_PART = (
+            "datasets/"  # Part of the URL for Hugging Face datasets
+        )
 
     def load_base_model_and_tokenizer(
         self,
@@ -49,7 +60,7 @@ class FineTune:
             load_in_4bit=self.config.load_in_4bit,
             load_in_8bit=self.config.load_in_8bit,
             full_finetuning=self.config.full_finetuning,
-            token=os.getenv("HF_TOKEN"),  # For gated models
+            token=os.getenv("HF_TOKEN", ""),  # For gated models
         )
 
     def get_peft_model(self) -> FastLanguageModel:
@@ -65,14 +76,14 @@ class FineTune:
         kwargs = {}
         if self.config.is_multimodel:
             kwargs = {
-                "finetune_vision_layers" : self.config.finetune_vision_layers,
-                "finetune_language_layers":  self.config.finetune_language_layers,
+                "finetune_vision_layers": self.config.finetune_vision_layers,
+                "finetune_language_layers": self.config.finetune_language_layers,
                 "finetune_attention_modules": self.config.finetune_attention_modules,
                 "finetune_mlp_modules": self.config.finetune_mlp_modules,
             }
         return FastLanguageModel.get_peft_model(
             self.model,
-            **kwargs,   # type: ignore
+            **kwargs,  # type: ignore
             r=self.config.rank,
             target_modules=self.config.target_modules,
             lora_alpha=self.config.lora_alpha,
@@ -196,7 +207,11 @@ class FineTune:
 
         return [col for col in dataset_columns if col not in columns_to_keep]
 
-    def run(self):
+    # def log_configurations_to_mlflow(self):
+    #     for key, value in self.config.__dict__.items():
+    #         mlflow.log_param(f"config_{key}", value)
+
+    def run(self, run_name: str | None = None):
         """
         Run the fine-tuning process.
         Returns:
@@ -208,9 +223,19 @@ class FineTune:
 
         # Load training and validation data
         training_dataset = load_huggingface_dataset(self.config.training_data_id)
+        training_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
+            training_dataset, self.config.training_data_id
+        )
+
+        validation_dataset_for_mlflow = None
         if self.config.validation_data_id is not None:
             validation_dataset = load_huggingface_dataset(
                 self.config.validation_data_id
+            )
+            validation_dataset_for_mlflow = (
+                mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
+                    validation_dataset, self.config.validation_data_id
+                )
             )
         else:
             validation_dataset = None
@@ -229,47 +254,78 @@ class FineTune:
 
         # Data operations
         # strip doesnt work with batched=True, so we use batched=False
-        training_dataset = training_dataset.map(
+        processed_training_dataset = training_dataset.map(
             self.convert_a_data_row_to_conversation_format,
             remove_columns=self.get_columns_to_remove(
                 training_dataset, self.config.training_data_id
             ),
             batched=False,
         )
-        training_dataset = training_dataset.map(
+        processed_training_dataset = processed_training_dataset.map(
             self.apply_chat_template_to_conversations, batched=True
         )
         if (
             validation_dataset is not None
             and self.config.validation_data_id is not None
         ):
-            validation_dataset = validation_dataset.map(
+            processed_validation_dataset = validation_dataset.map(
                 self.convert_a_data_row_to_conversation_format,
                 remove_columns=self.get_columns_to_remove(
                     validation_dataset, self.config.validation_data_id
                 ),
                 batched=False,
             )
-            validation_dataset = validation_dataset.map(
+            processed_validation_dataset = processed_validation_dataset.map(
                 self.apply_chat_template_to_conversations, batched=True
             )
+        else:
+            processed_validation_dataset = None
         print("--- ✅ Data preprocessing completed. ---")
 
-        self.run_name = setup_run_name(
-            name=self.config.run_name,
-            prefix=self.config.run_name_prefix,
-            suffix=self.config.run_name_suffix,
-        )
+        if run_name is not None:
+            self.run_name = run_name
+        else:
+            self.run_name = setup_run_name(
+                name=self.config.run_name,
+                prefix=self.config.run_name_prefix,
+                suffix=self.config.run_name_suffix,
+            )
         print(f"Run name set to: {self.run_name}")
-        self.handle_wandb_setup()
-        print("--- ✅ Weights & Biases setup completed. ---")
+        # self.handle_wandb_setup()
+        # print("--- ✅ Weights & Biases setup completed. ---")
 
-        # Training
+        # Log dataset and model information if we're in an active MLflow run
+        if mlflow.active_run() is not None:
+            try:
+                # Log configurations
+                log_configurations_to_mlflow(self.config)
+
+                # Run name logging
+                mlflow.log_param("run_name", self.run_name)
+
+                # Model logging
+                base_model_url = self.HUGGINGFACE_BASE_URL + self.config.base_model_id
+                mlflow.log_param("base_model_url", base_model_url)
+                mlflow.log_param(
+                    "base_model_name", self.config.base_model_id.split("/")[-1]
+                )
+
+                # Dataset logging
+                mlflow.log_input(training_dataset_for_mlflow, context="training")
+                if validation_dataset_for_mlflow is not None:
+                    mlflow.log_input(
+                        validation_dataset_for_mlflow, context="validation"
+                    )
+
+            except Exception as e:
+                print(f"--- ⚠️ Warning: Failed to log initial parameters: {e} ---")
+
+        # Training setup
         trainer = SFTTrainer(
             model=self.model,
             tokenizer=self.tokenizer,  # type: ignore
-            train_dataset=training_dataset,
-            eval_dataset=validation_dataset,
+            train_dataset=processed_training_dataset,
+            eval_dataset=processed_validation_dataset,
             dataset_text_field=self.TEXTS_KEY,  # type: ignore
             max_seq_length=self.config.max_sequence_length,  # type: ignore
             data_collator=DataCollatorForSeq2Seq(tokenizer=self.tokenizer),
@@ -291,24 +347,29 @@ class FineTune:
                 lr_scheduler_type=self.config.lr_scheduler_type,
                 seed=self.config.seed,
                 output_dir=self.MODEL_LOCAL_OUTPUT_DIR,  # Save checkpoints and outputs to local models dir
-                report_to=self.config.report_to,
+                report_to=self.config.report_to,  # Keep original MLflow reporting
                 save_steps=self.config.save_steps,
                 save_total_limit=self.config.save_total_limit,
                 push_to_hub=self.config.push_to_hub,
                 hub_model_id=self.run_name,
+                run_name=self.run_name,
             ),
             callbacks=[],
         )
         print("--- ✅ Trainer initialized successfully. ---")
+
         if self.config.train_on_responses_only:
             trainer = train_on_responses_only(
                 trainer,
                 instruction_part=self.config.question_part,
                 response_part=self.config.answer_part,
             )
+
         print("--- ✅ Starting training... ---")
+        # Train - the trainer will automatically use the active MLflow run if one exists
         trainer_stats = trainer.train()  # type: ignore
         print(f"\n\n--- ✅ Training completed with stats: {trainer_stats} ---")
+
         print(
             f"--- ✅ Model and tokenizer saved to {self.MODEL_LOCAL_OUTPUT_DIR} locally and to Hugging Face Hub with ID: {self.run_name} ---"
         )

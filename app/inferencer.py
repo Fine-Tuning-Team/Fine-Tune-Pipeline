@@ -5,11 +5,15 @@ import argparse
 import json
 import os
 from tqdm import tqdm
+import mlflow
+import mlflow.data
+
 
 # Local imports
 from config_manager import get_config_manager, InferencerConfig
 from utils import (
     load_huggingface_dataset,
+    log_configurations_to_mlflow,
     push_dataset_to_huggingface,
     setup_run_name,
     login_huggingface,
@@ -88,7 +92,7 @@ class Inferencer:
             )
         untokenized_msg = self.tokenizer.apply_chat_template(
             conversation, add_generation_prompt=True, tokenize=False
-        ) # BUG
+        )
         return untokenized_msg
 
     def generate_a_response(self, data_row):
@@ -118,9 +122,9 @@ class Inferencer:
         conversation = self.convert_a_data_row_to_conversation_format(data_row)
         untokenized_msg = self.apply_chat_template_to_conversation(conversation)
 
-        tokenized_input = self.tokenizer(
-            untokenized_msg, return_tensors="pt"
-        ).to(self.model.device)  # This will tokenize the input and prepare it for the model
+        tokenized_input = self.tokenizer(untokenized_msg, return_tensors="pt").to(
+            self.model.device
+        )  # This will tokenize the input and prepare it for the model
         input_length = tokenized_input.input_ids.shape[-1]
 
         output_ids = self.model.generate(
@@ -131,7 +135,7 @@ class Inferencer:
             min_p=self.config.min_p,
         )
         model_response = self.tokenizer.decode(
-            output_ids[0][input_length :], skip_special_tokens=True
+            output_ids[0][input_length:], skip_special_tokens=True
         )
         # output_ids[0][tokenized_msg.shape[-1]:] --> output_ids[0] is the generated response, and we skip the user and system parts by slicing from the end of the tokenized message.
         output_data_row = {
@@ -155,7 +159,7 @@ class Inferencer:
         with open(file_name, mode, encoding="utf-8") as f:
             f.write(json.dumps(data_row, ensure_ascii=False) + "\n")
 
-    def run(self):
+    def run(self, run_name: str | None = None):
         """
         Generate responses for each user prompt in the dataset and return as a list of dicts.
         """
@@ -165,6 +169,9 @@ class Inferencer:
 
         # Load the dataset
         testing_dataset = load_huggingface_dataset(self.config.testing_data_id)
+        testing_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
+            testing_dataset, self.config.testing_data_id
+        )
         print("--- ✅ Loaded testing dataset successfully. ---")
 
         # Load the model
@@ -180,12 +187,28 @@ class Inferencer:
         FastLanguageModel.for_inference(self.model)
         print("--- ✅ Model set for inference. ---")
 
-        self.run_name = setup_run_name(
-            name=self.config.run_name,
-            prefix=self.config.run_name_prefix,
-            suffix=self.config.run_name_suffix,
-        )
+        if run_name is not None:
+            self.run_name = run_name
+        else:
+            self.run_name = setup_run_name(
+                name=self.config.run_name,
+                prefix=self.config.run_name_prefix,
+                suffix=self.config.run_name_suffix,
+            )
         print(f"--- ✅ Run name set to: {self.run_name} ---")
+
+        if mlflow.active_run() is not None:
+            try:
+                # Log configurations
+                log_configurations_to_mlflow(self.config)
+
+                # Run name logging
+                mlflow.log_param("run_name", self.run_name)
+
+                # Dataset logging
+                mlflow.log_input(testing_dataset_for_mlflow, context="testing")
+            except Exception as e:
+                print(f"--- ⚠️ Warning: Failed to log initial parameters: {e} ---")
 
         # Model response generation
         print("--- ✅ Starting inference on the testing dataset. ---")
@@ -194,14 +217,42 @@ class Inferencer:
         ):
             response = self.generate_a_response(data_row)
             self.save_datarow_to_jsonl(self.OUTPUT_FILE_NAME, response)
+        # Push responses to HuggingFace Hub
+        self.inferencer_output_dataset_id = f"{self.config.hf_user_id}/{self.run_name}"
         push_dataset_to_huggingface(
-            repo_id=f"{self.config.hf_user_id}/{self.run_name}",
+            repo_id=self.inferencer_output_dataset_id,
             dataset_path=self.OUTPUT_FILE_NAME,
         )
         print(
             f"--- ✅ Responses saved to {self.OUTPUT_FILE_NAME} and pushed to HuggingFace Hub under {self.config.hf_user_id}/{self.run_name} ---"
         )
+        # Log the inference output dataset to MLflow
+        inferencer_output_dataset = load_huggingface_dataset(
+            self.inferencer_output_dataset_id
+        )
+        print(f"--- ✅ Loaded inference output dataset from HuggingFace Hub ---")
+        inferencer_output_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
+            inferencer_output_dataset, self.inferencer_output_dataset_id
+        )
+        print("--- ✅ Converted inference output dataset for MLflow logging ---")
+        if mlflow.active_run() is not None:
+            try:
+                # Log the inference output dataset to MLflow
+                mlflow.log_input(
+                    inferencer_output_dataset_for_mlflow, context="inference_output"
+                )
+            except Exception as e:
+                print(f"--- ⚠️ Warning: Failed to log inference output dataset: {e} ---")
+        print(
+            f"--- ✅ Inference output dataset logged to MLflow under {self.inferencer_output_dataset_id} ---"
+        )
         print("--- ✅ Inference completed successfully. ---")
+
+        output_file_line_count = -1
+        if os.path.exists(self.OUTPUT_FILE_NAME):
+            with open(self.OUTPUT_FILE_NAME, "r", encoding="utf-8") as f:
+                output_file_line_count = sum(1 for _ in f)
+        return output_file_line_count
 
 
 if __name__ == "__main__":
@@ -210,7 +261,7 @@ if __name__ == "__main__":
     parser.add_argument("--hf-key", type=str, help="Hugging Face API token")
 
     args = parser.parse_args()
-    
+
     # Set environment variables from command-line arguments
     if args.hf_key:
         os.environ["HF_TOKEN"] = args.hf_key

@@ -94,6 +94,7 @@ nav:
     - Inferencer Config: configuration/inferencer.md
     - Evaluator Config: configuration/evaluator.md
   - Components:
+    - Pipeline Orchestrator: components/pipeline-orchestrator.md
     - Fine-Tuner: components/fine-tuner.md
     - Inferencer: components/inferencer.md
     - Evaluator: components/evaluator.md
