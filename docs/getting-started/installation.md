@@ -9,7 +9,7 @@ Before installing the Fine-Tune Pipeline, ensure you have:
 - **Python 3.12 or higher**
 - **uv** package manager (recommended) or pip
 - **Git** for version control
-- **CUDA-compatible GPU** (recommended for training)
+- **CUDA-compatible GPU** (required for fine tune and inference phases)
 
 ## Installing uv (Recommended)
 
@@ -37,33 +37,15 @@ pip install uv
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/Fine-Tune-Pipeline.git
+git clone https://github.com/Fine-Tuning-Team/Fine-Tune-Pipeline.git
 cd Fine-Tune-Pipeline
 ```
 
 ## Install Dependencies
 
-### Using uv (Recommended)
-
 ```bash
 # Sync all dependencies (this will create a virtual environment automatically)
 uv sync
-```
-
-### Using pip
-
-```bash
-# Create a virtual environment
-python -m venv venv
-
-# Activate the virtual environment
-# On Windows:
-venv\Scripts\activate
-# On macOS/Linux:
-source venv/bin/activate
-
-# Install dependencies
-pip install -e .
 ```
 
 ## Verify Installation
@@ -77,16 +59,18 @@ uv run python -c "from app.finetuner import FineTune; print('✅ Installation su
 
 ## GPU Setup (Optional but Recommended)
 
-For optimal performance, especially during training, we recommend using a CUDA-compatible GPU.
+For optimal performance, especially during fine-tune and inference phases, a CUDA-compatible GPU is required.
 
 ### CUDA Installation
 
 1. **Check CUDA compatibility**:
+
    ```bash
    nvidia-smi
    ```
 
 2. **Install PyTorch with CUDA support**:
+
    ```bash
    # For CUDA 11.8
    uv add torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
@@ -96,6 +80,7 @@ For optimal performance, especially during training, we recommend using a CUDA-c
    ```
 
 3. **Verify CUDA installation**:
+
    ```bash
    uv run python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
    ```
