@@ -82,19 +82,6 @@ Built-in support for:
 
 Ready to get started? Check out our [Quick Start Guide](getting-started/quick-start.md) to begin fine-tuning your first model!
 
-### Pipeline Execution
-
-```bash
-# Run complete pipeline with MLflow tracking
-python app/pipeline_invoker.py --hf-key YOUR_HF_TOKEN --openai-key YOUR_OPENAI_KEY
-
-# Run specific phases
-python app/pipeline_invoker.py --skip-finetuning --stop-after-inference
-
-# Start documentation server
-python app/docs_server.py
-```
-
 ## 📚 What's Next?
 
 - [Environment Setup](getting-started/environment-setup.md) - Set up your API keys and configuration

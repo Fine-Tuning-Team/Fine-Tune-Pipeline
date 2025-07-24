@@ -46,16 +46,17 @@ Required for running fine-tuning jobs on Runpod GPU instances.
 
 ### 5. SSH Keys (For Remote Access)
 
-Required for accessing remote servers or instances.
+Required for accessing remote servers or instances. Generate the SSH keys (public and private) and copy them.
 
-Generate the SSH keys (public and private) and copy them. Add them to GitHub secrets as below.
+```bash
+ssh-keygen -t ed25519 -C "your_email@example.com"
+```
 
 ## Setting Up Environment Variables
 
 In GitHub, go to `Settings > Secrets and variables > Actions` and add the following
 
-```bash
-# .env file
+```toml
 HF_TOKEN=your_hf_token_here
 WANDB_TOKEN=your_wandb_key_here (You can skip this secret for now)
 OPENAI_API_KEY=your_openai_key_here
@@ -77,14 +78,36 @@ base_model_id = "unsloth/Qwen2.5-0.5B-Instruct-bnb-4bit"
 max_sequence_length = 4096
 
 # Training data
-training_data_id = "your-username/your-training-dataset"
-validation_data_id = "your-username/your-validation-dataset"  # Optional
+training_data_id = "your-huggingface-username/your-training-dataset"
+validation_data_id = "your-huggingface-username/your-validation-dataset"  # Optional
 
 # Training parameters
 epochs = 3
 learning_rate = 0.0002
 device_train_batch_size = 4
 
+[inferencer]
+# Model settings
+max_sequence_length = 4096
+max_new_tokens = 512
+temperature = 0.7
+min_p = 0.1
+
+# Hugging Face user ID
+hf_user_id = "your-huggingface-username"
+
+[evaluator]
+# Metrics settings
+metrics = ["bleu_score", "rouge_score", "factual_correctness"]
+
+# Hugging Face user ID
+hf_user_id = "your-huggingface-username"
+
+[mlflow]
+# MLflow settings
+tracking_uri = "https://your-mlflow-tracking-uri"
+experiment_name = "your-experiment-name"
+run_name = "your-run-name"
 ```
 
 ## Next Steps
