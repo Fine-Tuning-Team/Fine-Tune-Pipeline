@@ -23,23 +23,7 @@ The `FineTunePipeline` class in `app/pipeline_invoker.py` provides:
 
 ## Architecture
 
-```mermaid
-graph TD
-    A[Pipeline Start] --> B[MLflow Setup]
-    B --> C[Configuration Logging]
-    C --> D{Run Phases}
-    D --> E[Fine-tuning Phase]
-    D --> F[Inference Phase] 
-    D --> G[Evaluation Phase]
-    E --> H[MLflow Nested Run]
-    F --> I[MLflow Nested Run]
-    G --> J[MLflow Nested Run]
-    H --> K[Phase Results]
-    I --> K
-    J --> K
-    K --> L[Pipeline Summary]
-    L --> M[MLflow Run End]
-```
+![Pipeline Architecture](../resources/pipeline-arch.png)
 
 ## Usage
 

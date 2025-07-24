@@ -24,17 +24,7 @@ The `FineTune` class in `app/finetuner.py` handles the complete fine-tuning pipe
 
 ## Architecture
 
-```mermaid
-graph TD
-    A[Configuration] --> B[Model Loading]
-    B --> C[Dataset Processing]
-    C --> D[LoRA Setup]
-    D --> E[Training Loop]
-    E --> F[Model Saving]
-    E --> G[MLflow Logging]
-    E --> H[W&B Logging]
-    F --> I[Hub Upload]
-```
+![Fine-Tuner Architecture](../resources/fine-tuner-arch.png)
 
 ## Usage
 
@@ -87,6 +77,7 @@ model, tokenizer = tuner.load_base_model_and_tokenizer()
 ```
 
 **Features:**
+
 - Automatic dtype selection (bfloat16 on supported hardware)
 - 4-bit/8-bit quantization support
 - Gated model authentication
@@ -101,6 +92,7 @@ peft_model = tuner.get_peft_model()
 ```
 
 **Configuration:**
+
 - Rank and alpha values for adaptation strength
 - Target modules for LoRA application
 - Dropout and bias handling
@@ -134,6 +126,7 @@ formatted_data = tuner.apply_chat_template_to_conversations(conversations)
 ```
 
 **Features:**
+
 - Automatic template detection
 - Consistent formatting across models
 - Support for various chat formats (ChatML, Llama, etc.)

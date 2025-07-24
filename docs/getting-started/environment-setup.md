@@ -87,18 +87,6 @@ device_train_batch_size = 4
 
 ```
 
-## GPU Configuration
-
-If you're using a GPU for training, verify your setup:
-
-```bash
-# Check CUDA availability
-uv run python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}'); print(f'GPU count: {torch.cuda.device_count()}')"
-
-# Check unsloth GPU support
-uv run python -c "from unsloth import is_bfloat16_supported; print(f'bfloat16 supported: {is_bfloat16_supported()}')"
-```
-
 ## Next Steps
 
 With your environment set up, you're ready to:

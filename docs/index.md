@@ -97,7 +97,7 @@ python app/docs_server.py
 
 ## 📚 What's Next?
 
-- [Installation Guide](getting-started/installation.md) - Set up your environment
+- [Environment Setup](getting-started/environment-setup.md) - Set up your API keys and configuration
 - [Configuration Overview](configuration/overview.md) - Understand the configuration system
 - [Basic Fine-Tuning Tutorial](tutorials/basic-fine-tuning.md) - Your first fine-tuning project
 - [API Reference](api-reference.md) - Detailed API documentation

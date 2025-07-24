@@ -1,39 +1,6 @@
 # Troubleshooting
 
-This guide helps you diagnose and fix common issues with the Fine-Tune Pipeline.
-
-## Installation Issues
-
-### uv sync fails
-
-**Error**: `Failed to resolve dependencies`
-
-**Solutions**:
-```bash
-# Update uv to latest version
-uv self update
-
-# Clear cache and retry
-uv cache clean
-uv sync --refresh
-
-# Check Python version
-python --version  # Should be 3.12+
-```
-
-### ImportError: No module named 'unsloth'
-
-**Error**: `ModuleNotFoundError: No module named 'unsloth'`
-
-**Solutions**:
-```bash
-# Reinstall unsloth with CUDA support
-uv remove unsloth
-uv add "unsloth[cu118] @ git+https://github.com/unslothai/unsloth.git"
-
-# Or for CUDA 12.1
-uv add "unsloth[cu121] @ git+https://github.com/unslothai/unsloth.git"
-```
+This guide helps you diagnose and fix common issues with the Fine-Tune Pipeline when running in GitHub Actions.
 
 ## Configuration Issues
 
@@ -352,8 +319,8 @@ If you're still experiencing issues:
 **Fix**: Reduce batch size or sequence length
 
 ### Pattern: "ModuleNotFoundError"
-**Cause**: Missing dependencies  
-**Fix**: Run `uv sync` or install specific package
+**Cause**: Missing dependencies in GitHub Actions  
+**Fix**: Check workflow dependencies or package availability
 
 ### Pattern: "HfHubError: 401"
 **Cause**: Authentication failure  

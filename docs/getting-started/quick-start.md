@@ -6,7 +6,6 @@ This guide will walk you through running your first fine-tuning job with the Fin
 
 Before you begin, make sure you have:
 
-- ✅ [Installed the pipeline](installation.md)
 - ✅ [Set up your environment](environment-setup.md) with API keys
 - ✅ A GPU instance for training
 
