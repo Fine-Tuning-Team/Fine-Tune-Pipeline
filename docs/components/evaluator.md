@@ -22,20 +22,7 @@ The `Evaluator` class in `app/evaluator.py` handles:
 
 ## Architecture
 
-```mermaid
-graph TD
-    A[Inference Results] --> B[Data Loading]
-    B --> C[Ground Truth Matching]
-    C --> D[Traditional Metrics]
-    C --> E[LLM-Based Metrics]
-    C --> F[Embedding Metrics]
-    D --> G[Score Aggregation]
-    E --> G
-    F --> G
-    G --> H[Report Generation]
-    H --> I[JSON Summary]
-    H --> J[Excel Details]
-```
+![Evaluator Architecture](../resources/eval-arch.png)
 
 ## Usage
 

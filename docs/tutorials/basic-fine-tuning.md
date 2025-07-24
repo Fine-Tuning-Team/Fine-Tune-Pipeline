@@ -1,33 +1,31 @@
 # Basic Fine-Tuning Tutorial
 
-This tutorial will guide you through your first fine-tuning project using the Fine-Tune Pipeline. We'll fine-tune a small language model on a question-answering dataset.
+This tutorial will guide you through your first fine-tuning project using the Fine-Tune Pipeline. We'll fine-tune a small language model on a question-answering dataset about programming concepts.
 
 ## Prerequisites
 
 Before starting this tutorial, ensure you have:
 
-- ✅ [Installed the pipeline](../getting-started/installation.md)
 - ✅ [Set up your environment](../getting-started/environment-setup.md)
-- ✅ API keys for Hugging Face and Weights & Biases
-- ✅ A GPU with at least 4GB VRAM (or CPU for slower training)
+- ✅ API keys for Hugging Face, OpenAI, and optionally Weights & Biases
+- ✅ Access to a GitHub repository with the Fine-Tune Pipeline
 
 ## Tutorial Overview
 
 In this tutorial, we will:
 
-1. Prepare a custom dataset
-2. Configure the pipeline
-3. Run fine-tuning
-4. Test the fine-tuned model
-5. Evaluate results
+1. Prepare custom datasets (training, testing, and ground truth)
+2. Configure the complete pipeline (fine-tuning, inference, and evaluation)
+3. Trigger the automated pipeline execution
+4. Monitor and review results
 
-**Estimated Time**: 30-45 minutes
+**Estimated Time**: 45-60 minutes (including pipeline execution)
 
-## Step 1: Prepare Your Dataset
+## Step 1: Prepare Your Datasets
 
-We'll create a simple question-answering dataset about programming concepts.
+We'll create three datasets for the complete pipeline:
 
-### Create a Dataset File
+### 1.1 Training Dataset
 
 Create a file called `programming_qa.jsonl`:
 
@@ -37,30 +35,62 @@ Create a file called `programming_qa.jsonl`:
 {"question": "What is object-oriented programming?", "answer": "Object-oriented programming (OOP) is a programming paradigm based on the concept of objects, which contain data (attributes) and code (methods)."}
 {"question": "What is an algorithm?", "answer": "An algorithm is a step-by-step procedure or set of instructions designed to solve a specific problem or perform a particular task."}
 {"question": "What is debugging?", "answer": "Debugging is the process of finding, analyzing, and fixing errors or bugs in computer programs to ensure they work correctly."}
+{"question": "What is a loop?", "answer": "A loop is a programming construct that repeats a block of code multiple times until a certain condition is met."}
+{"question": "What is recursion?", "answer": "Recursion is a programming technique where a function calls itself to solve a problem by breaking it down into smaller, similar subproblems."}
+{"question": "What is a data structure?", "answer": "A data structure is a way of organizing and storing data in a computer so that it can be accessed and manipulated efficiently."}
 ```
 
-### Upload to Hugging Face Hub
+### 1.2 Test Dataset (for Inference)
 
-1. **Create a new dataset repository** on [Hugging Face Hub](https://huggingface.co/new-dataset)
-2. **Upload your dataset**:
+Create a file called `test_questions.jsonl`:
+
+```json
+{"question": "What is a while loop in programming?", "answer": ""}
+{"question": "Explain the concept of inheritance in OOP.", "answer": ""}
+{"question": "What is the difference between a stack and a queue?", "answer": ""}
+{"question": "What is binary search?", "answer": ""}
+```
+
+### 1.3 Ground Truth Dataset (for Evaluation)
+
+Create a file called `ground_truth.jsonl`:
+
+```json
+{"question": "What is a while loop in programming?", "answer": "A while loop is a control flow statement that repeatedly executes a block of code as long as a specified condition remains true."}
+{"question": "Explain the concept of inheritance in OOP.", "answer": "Inheritance is a fundamental concept in object-oriented programming that allows a class to inherit properties and methods from another class, promoting code reuse and establishing relationships between classes."}
+{"question": "What is the difference between a stack and a queue?", "answer": "A stack follows Last-In-First-Out (LIFO) principle where elements are added and removed from the same end, while a queue follows First-In-First-Out (FIFO) principle where elements are added at one end and removed from the other."}
+{"question": "What is binary search?", "answer": "Binary search is an efficient algorithm for finding a target value in a sorted array by repeatedly dividing the search interval in half and comparing the target with the middle element."}
+```
+
+### 1.4 Upload Datasets to Hugging Face Hub
+
+1. **Create dataset repositories** on [Hugging Face Hub](https://huggingface.co/new-dataset):
+   - `your-username/programming-qa-training`
+   - `your-username/programming-qa-testing`
+   - `your-username/programming-qa-ground-truth`
+
+2. **Upload your datasets** using the web interface or CLI:
 
 ```bash
-# Install Hugging Face CLI if not already installed
-pip install huggingface_hub[cli]
-
-# Login to Hugging Face
+# If using Hugging Face CLI locally
 huggingface-cli login
 
-# Create and upload dataset
-huggingface-cli repo create your-username/programming-qa-dataset --type dataset
-huggingface-cli upload your-username/programming-qa-dataset programming_qa.jsonl
+# Upload training dataset
+huggingface-cli repo create your-username/programming-qa-training --type dataset
+huggingface-cli upload your-username/programming-qa-training programming_qa.jsonl
+
+# Upload test dataset
+huggingface-cli repo create your-username/programming-qa-testing --type dataset
+huggingface-cli upload your-username/programming-qa-testing test_questions.jsonl
+
+# Upload ground truth dataset
+huggingface-cli repo create your-username/programming-qa-ground-truth --type dataset
+huggingface-cli upload your-username/programming-qa-ground-truth ground_truth.jsonl
 ```
 
-Alternatively, you can use the web interface to upload your file.
+## Step 2: Configure the Complete Pipeline
 
-## Step 2: Configure the Pipeline
-
-Edit your `config.toml` file with the following configuration:
+Now we'll configure all three components (fine-tuning, inference, and evaluation) in a single `config.toml` file:
 
 ```toml
 [fine_tuner]
@@ -80,8 +110,8 @@ lora_dropout = 0.1
 target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 bias = "none"
 
-# Your dataset
-training_data_id = "your-username/programming-qa-dataset"
+# Training dataset
+training_data_id = "your-username/programming-qa-training"
 validation_data_id = "null"  # No validation set for this tutorial
 
 # Dataset configuration
@@ -92,7 +122,7 @@ system_prompt_column = "null"
 system_prompt_override_text = "You are a helpful programming tutor. Provide clear and concise explanations."
 
 # Training parameters - short training for tutorial
-epochs = 2
+epochs = 3
 learning_rate = 0.0003
 device_train_batch_size = 2
 device_validation_batch_size = 2
@@ -132,84 +162,16 @@ loftq_config = "null"
 train_on_responses_only = true
 question_part = "<|im_start|>user\n"
 answer_part = "<|im_start|>assistant\n"
-```
 
-### Configuration Explanation
-
-| Parameter | Value | Explanation |
-|----------|-------|-------------|
-| `base_model_id` | `unsloth/Qwen2.5-0.5B-Instruct-bnb-4bit` | Small model for quick training |
-| `epochs` | `2` | Short training for tutorial |
-| `rank` | `16` | Moderate LoRA rank for good quality |
-| `device_train_batch_size` | `2` | Small batch size for memory efficiency |
-| `system_prompt_override_text` | Custom prompt | Specialized for programming help |
-
-## Step 3: Run Fine-Tuning
-
-Now let's start the fine-tuning process:
-
-```bash
-# Navigate to your project directory
-cd Fine-Tune-Pipeline
-
-# Ensure dependencies are synced
-uv sync
-
-# Run fine-tuning with your API keys
-uv run app/finetuner.py --hf-key "your_hf_token" --wandb-key "your_wandb_key"
-```
-
-### What to Expect
-
-The training should take approximately 10-15 minutes on a modern GPU. You'll see output like:
-
-```text
---- ✅ Login to Hugging Face Hub successful. ---
---- ✅ Training dataset loaded: your-username/programming-qa-dataset ---
---- ✅ No validation dataset provided. Skipping validation. ---
---- ✅ Model and tokenizer loaded successfully. ---
---- ✅ Data preprocessing completed. ---
-Run name set to: programming-qa-20250629-143022
---- ✅ Weights & Biases setup completed. ---
---- ✅ Trainer initialized successfully. ---
---- ✅ Starting training... ---
-
-Training Progress:
-Epoch 1/2: ██████████ 100% | Loss: 1.234
-Epoch 2/2: ██████████ 100% | Loss: 0.987
-
---- ✅ Training completed successfully ---
---- ✅ Model saved to ./models/fine_tuned locally ---
---- ✅ Model uploaded to Hugging Face Hub ---
-```
-
-## Step 4: Test Your Fine-Tuned Model
-
-Let's test the model with inference:
-
-### 4.1 Create Test Data
-
-Create a test file `test_questions.jsonl`:
-
-```json
-{"question": "What is a loop in programming?", "answer": ""}
-{"question": "What is recursion?", "answer": ""}
-{"question": "What is a data structure?", "answer": ""}
-```
-
-### 4.2 Update Inferencer Configuration
-
-Add this section to your `config.toml`:
-
-```toml
 [inferencer]
+# Model configuration
 max_sequence_length = 2048
 dtype = "null"
 load_in_4bit = true
 load_in_8bit = false
 
-# Your test dataset
-testing_data_id = "your-username/test-questions"  # Upload test_questions.jsonl first
+# Test dataset for inference
+testing_data_id = "your-username/programming-qa-testing"
 
 # Column configuration
 question_column = "question"
@@ -218,196 +180,247 @@ system_prompt_column = "null"
 system_prompt_override_text = "You are a helpful programming tutor. Provide clear and concise explanations."
 
 # Generation parameters
-max_new_tokens = 150
+max_new_tokens = 200
 use_cache = true
 temperature = 0.7
 min_p = 0.1
 
-# Model location
+# Model location - will use the model just fine-tuned
 hf_user_id = "your-username"
-run_name = "null"  # Will use the latest model
-```
+run_name = "null"  # Will use the latest model from fine-tuning
 
-### 4.3 Run Inference
-
-```bash
-# Upload test dataset first
-huggingface-cli upload your-username/test-questions test_questions.jsonl
-
-# Run inference
-uv run app/inferencer.py --hf-key "your_hf_token"
-```
-
-## Step 5: Evaluate Results
-
-Let's evaluate how well our model performs:
-
-### 5.1 Prepare Ground Truth
-
-Create `ground_truth.jsonl` with expected answers:
-
-```json
-{"question": "What is a loop in programming?", "answer": "A loop is a programming construct that repeats a block of code multiple times until a certain condition is met."}
-{"question": "What is recursion?", "answer": "Recursion is a programming technique where a function calls itself to solve a problem by breaking it down into smaller, similar subproblems."}
-{"question": "What is a data structure?", "answer": "A data structure is a way of organizing and storing data in a computer so that it can be accessed and manipulated efficiently."}
-```
-
-### 5.2 Configure Evaluator
-
-Add this to your `config.toml`:
-
-```toml
 [evaluator]
-# Evaluation metrics
-metrics = ["bleu_score", "rouge_score", "semantic_similarity"]
+# Ground truth dataset for evaluation
+ground_truth_data_id = "your-username/programming-qa-ground-truth"
 
-# LLM for evaluation (optional, remove if no OpenAI key)
+# Evaluation metrics
+metrics = ["bleu_score", "rouge_score", "semantic_similarity", "factual_correctness"]
+
+# LLM for advanced evaluation (requires OpenAI API key)
 llm = "gpt-4o-mini"
 embedding = "text-embeddings-3-small"
+
+# Column configuration
+question_column = "question"
+ground_truth_column = "answer"
+prediction_column = "answer"
 
 # Run configuration
 run_name = "null"
 run_name_prefix = "eval-programming-qa-"
 run_name_suffix = ""
+
+# MLflow tracking
+mlflow_experiment_name = "programming-qa-evaluation"
 ```
 
-### 5.3 Run Evaluation
+### Configuration Explanation
+
+| Section | Key Parameters | Purpose |
+|---------|---------------|---------|
+| **Fine-Tuner** | `base_model_id`, `epochs`, `rank` | Defines the model and training process |
+| **Inferencer** | `testing_data_id`, `max_new_tokens` | Configures inference on test data |
+| **Evaluator** | `ground_truth_data_id`, `metrics` | Sets up evaluation against ground truth |
+
+## Step 3: Trigger the Complete Pipeline
+
+With all configurations in place, commit and push to trigger the automated pipeline:
 
 ```bash
-# Run evaluation (with OpenAI key for LLM-based metrics)
-uv run app/evaluator.py --openai-key "your_openai_key"
+# Add the updated config file
+git add config.toml
 
-# Or without LLM-based metrics (only BLEU and ROUGE)
-uv run app/evaluator.py
+# Commit with a descriptive message
+git commit -m "Add complete pipeline config for programming QA tutorial"
+
+# Push to trigger GitHub Actions
+git push origin your-branch-name
 ```
 
-## Step 6: Review Results
+## Step 4: Monitor Pipeline Execution
 
-### Training Metrics
+The pipeline will automatically execute in the following sequence:
 
-1. **Weights & Biases Dashboard**:
-   - Go to [wandb.ai](https://wandb.ai)
-   - Open your project: `programming-qa-tutorial`
-   - Review loss curves, learning rate, and system metrics
+### 4.1 Fine-Tuning Phase
 
-2. **Local Model**:
-   - Model saved in `./models/fine_tuned/`
-   - Hugging Face Hub: `your-username/programming-qa-YYYYMMDD-HHMMSS`
+- **Duration**: ~15-20 minutes
+- **Process**: Downloads model, trains on your dataset, uploads to Hub
+- **Output**: Fine-tuned model in `your-username/programming-qa-YYYYMMDD-HHMMSS`
 
-### Inference Results
+### 4.2 Inference Phase
 
-Check `inferencer_output.jsonl`:
+- **Duration**: ~5-10 minutes  
+- **Process**: Loads fine-tuned model, generates answers for test questions
+- **Output**: Inference results in JSONL format
 
-```bash
-cat inferencer_output.jsonl
+### 4.3 Evaluation Phase
+
+- **Duration**: ~5-10 minutes
+- **Process**: Compares predictions with ground truth using multiple metrics
+- **Output**: Evaluation report with scores and analysis
+
+### 4.4 Monitoring Progress
+
+1. **GitHub Actions**: Go to the "Actions" tab in your repository
+2. **Real-time Logs**: Click on the running workflow to see live progress
+3. **Phase Indicators**: Look for phase completion messages:
+
+   ```sh
+   --- ✅ Fine-tuning completed successfully ---
+   --- ✅ Inference completed successfully ---
+   --- ✅ Evaluation completed successfully ---
+   ```
+
+## Step 5: Review Results
+
+### 5.1 Training Metrics
+
+**MLFlow Dashboard**:
+
+- Go to [mlflow server](https://33008a58-e51f-4442-994c-c4841203c6fb.e1-us-east-azure.choreoapps.dev/) 
+- Project: `programming-qa-tutorial`
+- Review: Loss curves, learning rate schedules, GPU utilization
+
+**Expected Training Progress**:
+
+```text
+Epoch 1/3: Loss: 1.234 → 0.987
+Epoch 2/3: Loss: 0.987 → 0.756  
+Epoch 3/3: Loss: 0.756 → 0.612
 ```
 
-Expected output:
+### 5.2 Inference Results
+
+**Location**: Automatically uploaded to Hugging Face Hub
+**Format**: JSONL file with generated answers
+**Sample**:
+
 ```json
-{"question": "What is a loop in programming?", "answer": "A loop is a programming construct that allows you to repeat a block of code multiple times...", "metadata": {...}}
+{"question": "What is a while loop in programming?", "answer": "A while loop is a control structure that repeatedly executes code as long as a condition is true..."}
 ```
 
-### Evaluation Metrics
+### 5.3 Evaluation Metrics
 
-Check the evaluation results:
+**MLflow Dashboard**: 
 
-```bash
-# Summary metrics
-cat evaluator_output_summary.json
+- URL: [MLflow Server](https://33008a58-e51f-4442-994c-c4841203c6fb.e1-us-east-azure.choreoapps.dev/)
+- Experiment: `programming-qa-evaluation`
 
-# Detailed results
-# Open evaluator_output_detailed.xlsx in Excel/LibreOffice
+**Key Metrics to Review**:
+
+| Metric | Good Score | Interpretation |
+|--------|------------|----------------|
+| **BLEU Score** | 0.3+ | Word-level similarity with reference |
+| **ROUGE-L** | 0.4+ | Longest common subsequence overlap |
+| **Semantic Similarity** | 0.6+ | Vector similarity using embeddings |
+| **Factual Correctness** | 0.7+ | LLM-judged factual accuracy |
+
+### 5.4 Detailed Results Files
+
+All results are automatically uploaded to Hugging Face Hub:
+
+- **Training logs**: Model repository
+- **Inference output**: `inferencer_output.jsonl`
+- **Evaluation report**: `evaluator_output_detailed.xlsx`
+- **Summary metrics**: `evaluator_output_summary.json`
+
+## Understanding Your Results
+
+### Good Performance Indicators
+
+- ✅ Training loss decreases consistently
+- ✅ BLEU score > 0.3  
+- ✅ Semantic similarity > 0.6
+- ✅ Generated answers are coherent and relevant
+
+### Warning Signs
+
+- ⚠️ Training loss plateaus early (possible underfitting)
+- ⚠️ Very low BLEU scores < 0.1 (poor word overlap)
+- ⚠️ Generated answers are repetitive or off-topic
+
+### Next Steps Based on Results
+
+**If results are good (metrics above thresholds)**:
+
+- Experiment with larger models
+- Add more diverse training data
+- Try longer training (more epochs)
+
+**If results need improvement**:
+
+- Increase LoRA rank (16 → 32)
+- Add more training data
+- Adjust generation parameters (temperature, max_tokens)
+- Use response-only training for better instruction following
+
+## Advanced Improvements
+
+### 1. Scale Up Training
+
+```toml
+[fine_tuner]
+epochs = 40                   # Longer training
+rank = 32                      # Higher LoRA capacity
+device_train_batch_size = 4    # Larger batches (if GPU allows)
 ```
 
-## Understanding the Results
+### 2. Improve Generation Quality
 
-### Training Loss
+```toml
+[inferencer]
+temperature = 0.3              # More focused generation
+max_new_tokens = 3000           # Longer responses
+```
 
-- **Good Training**: Loss should decrease over epochs
-- **Overfitting**: Loss stops decreasing or increases
-- **Underfitting**: Loss remains high throughout training
+### 3. Add More Evaluation Metrics
 
-### BLEU Score
-
-- **Range**: 0-100 (higher is better)
-- **Good Score**: 20+ for this task
-- **Interpretation**: Measures word overlap with reference
-
-### ROUGE Score
-
-- **Range**: 0-1 (higher is better)  
-- **Good Score**: 0.2+ for this task
-- **Interpretation**: Measures summary quality
-
-### Semantic Similarity
-
-- **Range**: 0-1 (higher is better)
-- **Good Score**: 0.7+ for this task
-- **Interpretation**: Meaning similarity using embeddings
-
-## Next Steps
-
-Congratulations! You've completed your first fine-tuning project. Here's what you can do next:
-
-### Improve the Model
-
-1. **More Data**: Add more diverse programming questions
-2. **Longer Training**: Increase epochs (3-5)
-3. **Higher LoRA Rank**: Try rank=32 for better quality
-4. **Validation Set**: Add validation data to monitor overfitting
-
-### Advanced Techniques
-
-1. **[Advanced Configuration](advanced-configuration.md)**: Explore more options
-2. **[CI/CD Integration](ci-cd-integration.md)**: Automate your pipeline
-3. **Multi-GPU Training**: Scale to larger models and datasets
-
-### Experiment with Different Tasks
-
-1. **Text Summarization**: Train on summarization datasets
-2. **Code Generation**: Fine-tune for programming tasks
-3. **Translation**: Create multilingual models
-4. **Classification**: Adapt for classification tasks
+```toml
+[evaluator]
+metrics = ["bleu_score", "rouge_score", "semantic_similarity", 
+          "factual_correctness", "answer_accuracy", "coherence"]
+```
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Out of Memory Error**:
-```toml
-# Reduce batch size and sequence length
-device_train_batch_size = 1
-max_sequence_length = 1024
-```
+**Pipeline fails at fine-tuning**:
 
-**Slow Training**:
-```toml
-# Enable optimizations
-packing = true
-use_flash_attention = true
-```
+- Check dataset format and column names
+- Verify Hugging Face token has write permissions
+- Ensure model ID is correct
 
-**Poor Quality Results**:
-```toml
-# Increase model capacity
-rank = 32
-lora_alpha = 32
-epochs = 3
-```
+**Low evaluation scores**:
 
-**Dataset Loading Issues**:
-- Check dataset format (JSONL)
-- Verify column names match configuration
-- Ensure dataset is public or you have access
+- Increase training epochs or LoRA rank
+- Check if ground truth answers are high quality
+- Verify question-answer alignment in datasets
+
+**Out of memory errors**:
+
+- Reduce batch size: `device_train_batch_size = 1`
+- Reduce sequence length: `max_sequence_length = 1024`
+- Enable gradient checkpointing
 
 ## Conclusion
 
-You've successfully:
+Congratulations! You've successfully:
 
-- ✅ Created and uploaded a custom dataset
-- ✅ Configured the fine-tuning pipeline
-- ✅ Fine-tuned a language model
-- ✅ Generated predictions with inference
-- ✅ Evaluated model performance
+- ✅ Created a complete dataset pipeline (training, testing, ground truth)
+- ✅ Configured an end-to-end fine-tuning pipeline
+- ✅ Triggered automated execution via GitHub Actions
+- ✅ Monitored training, inference, and evaluation phases
+- ✅ Reviewed comprehensive results and metrics
 
-This foundation will help you tackle more complex fine-tuning projects. The same process scales to larger models, datasets, and more sophisticated tasks.
+This workflow scales to any domain - just replace the datasets and adjust the configurations. The same process works for:
+
+- Text summarization
+- Code generation  
+- Translation tasks
+- Classification problems
+
+Ready for more advanced techniques? Check out:
+
+- [Advanced Configuration](advanced-configuration.md)
+- [CI/CD Integration](ci-cd-integration.md)

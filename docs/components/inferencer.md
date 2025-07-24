@@ -22,16 +22,7 @@ The `Inferencer` class in `app/inferencer.py` provides:
 
 ## Architecture
 
-```mermaid
-graph TD
-    A[Test Dataset] --> B[Data Loading]
-    B --> C[Model Loading]
-    C --> D[Prompt Formatting]
-    D --> E[Batch Inference]
-    E --> F[Response Generation]
-    F --> G[Output Saving]
-    G --> H[JSONL Results]
-```
+![Inferencer Architecture](../resources/inferencer-arch.png)
 
 ## Usage
 

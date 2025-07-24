@@ -169,8 +169,7 @@ uv run mkdocs build
 ```
 docs/
 ├── index.md                  # Home page
-├── getting-started/          # Installation and setup
-│   ├── installation.md
+├── getting-started/          # Setup and quick start
 │   ├── environment-setup.md
 │   └── quick-start.md
 ├── configuration/            # Configuration guides

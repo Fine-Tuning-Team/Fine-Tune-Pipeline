@@ -6,7 +6,6 @@ This guide will walk you through running your first fine-tuning job with the Fin
 
 Before you begin, make sure you have:
 
-- ✅ [Installed the pipeline](installation.md)
 - ✅ [Set up your environment](environment-setup.md) with API keys
 - ✅ A GPU instance for training
 
@@ -34,7 +33,7 @@ device_train_batch_size = 4
 learning_rate = 0.0002
 ```
 
-> "First Run Recommendation"
+!!! tip "First Run Recommendation"
     The default configuration is designed for a quick first run. It uses a small model and dataset that should complete training in 10-15 minutes on a modern GPU.
 
 ## Step 3: Run Your First Fine-Tuning Job
@@ -45,7 +44,7 @@ This will trigger the pipeline to run. This will consist of 3 stages: `fine-tuni
 
 ### 1. Fine-tuning
 
-#### What Happens During Fine Tuning
+#### 1.1 What Happens During Fine Tuning
 
 1. **Model Loading**: Downloads and loads the base model (Qwen2.5-0.5B)
 2. **Data Processing**: Downloads and processes the training dataset
@@ -53,9 +52,9 @@ This will trigger the pipeline to run. This will consist of 3 stages: `fine-tuni
 4. **Training**: Runs 3 epochs of training with progress tracking
 5. **Saving**: Saves the model locally and pushes to Hugging Face Hub
 
-#### Expected Output
+#### 1.2 Expected Output
 
-You should see a final output similar to this:
+You should see a final output similar to this in github actions:
 
 ```text
 --- ✅ Fine-tuning completed successfully. ---
@@ -63,7 +62,7 @@ You should see a final output similar to this:
 
 ### 2. Inference
 
-#### What Happens During Inferencing
+#### 2.1 What Happens During Inferencing
 
 After training, the pipeline will automatically run inference. This involves:
 
@@ -73,9 +72,9 @@ After training, the pipeline will automatically run inference. This involves:
 4. **Output Generation**: Saves results in JSONL format
 5. **Pushing Results**: Uploads inference results to Hugging Face Hub
 
-#### Expected Output
+#### 2.2 Expected Output
 
-You should see a final output similar to this:
+You should see a final output similar to this in github actions:
 
 ```text
 --- ✅ Inference completed successfully. ---
@@ -83,13 +82,23 @@ You should see a final output similar to this:
 
 ### 3. Evaluation
 
-Finally, the pipeline will run evaluation on the inference results. This includes:
+#### 3.1 What Happens During Evaluation
+
+After inference, the pipeline will automatically run evaluation. This includes:
 
 1. **Loading Results**: Loads the inference output
 2. **Evaluation Metrics**: Computes various metrics like Factual Correctness, Answer Accuracy, and more with RAGAS
 3. **Reporting**: Generates detailed reports in Excel and JSON formats
 4. **Logging**: Saves evaluation metrics to MLflow
 5. **Pushing Results**: Uploads evaluation results to Hugging Face Hub
+
+#### 3.2 Expected Output
+
+You should see a final output similar to this in github actions:
+
+```text
+--- ✅ Evaluation completed successfully. ---
+```
 
 ## Next Steps
 
@@ -102,7 +111,7 @@ Congratulations! 🎉 You've successfully run your first fine-tuning pipeline. H
 3. **Adjust Hyperparameters**: Modify learning rate, batch size, epochs
 4. **Explore Advanced Features**: Check out the [Advanced Configuration](../tutorials/advanced-configuration.md) guide
 
-### Advanced Features
+### See Also
 
 1. **[Advanced Configuration](../tutorials/advanced-configuration.md)** - Explore all configuration options
 2. **[CI/CD Integration](../tutorials/ci-cd-integration.md)** - Set up automated training pipelines
@@ -119,7 +128,7 @@ If you encounter issues:
 
 ## Common First-Run Issues
 
- !!! warning "Out of Memory"
+!!! warning "Out of Memory"
     If you get CUDA out of memory errors, reduce the batch size:
     ```toml
     device_train_batch_size = 2  # Reduce from 4
@@ -128,16 +137,16 @@ If you encounter issues:
 
 !!! warning "Dataset Not Found"
     If the dataset fails to load, check:
-    - Your internet connection
-    - The dataset ID is correct
-    - You have access to the dataset (some require authentication)
+        - Your internet connection
+        - The dataset ID is correct
+        - You have access to the dataset (some require authentication)
 
 !!! tip "Training Too Slow"
-    For faster training on CPU:
+    For faster training:
     ```toml
-    device_train_batch_size = 1
-    epochs = 1
-    max_sequence_length = 1024  # Reduce sequence length
+    learning_rate = 0.0005  # Increase learning rate
+    epochs = 2              # Reduce number of epochs
+    device_train_batch_size = 8  # Increase batch size if GPU allows
     ```
 
 Happy fine-tuning! 🚀
