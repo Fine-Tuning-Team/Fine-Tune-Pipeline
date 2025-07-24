@@ -161,7 +161,7 @@ grad_accumulation = 4  # Effective batch size: 16
 |---------|---------|----------|
 | `[fine_tuner]` | Model training configuration | ✅ Yes |
 | `[inferencer]` | Inference and prediction settings | ✅ Yes |
-| `[evaluator]` | Evaluation metrics and settings | ✅ Yesl |
+| `[evaluator]` | Evaluation metrics and settings | ✅ Yes |
 
 ## Advanced Configuration
 

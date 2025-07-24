@@ -25,14 +25,14 @@ load_in_8bit = false
 full_finetuning = false
 ```
 
-### Model Recommendations
+### Model Resource Recommendations
 
-| Use Case | Recommended Model | Memory Requirement |
-|----------|-------------------|-------------------|
-| Quick Testing | `unsloth/Qwen2.5-0.5B-Instruct-bnb-4bit` | 2GB |
-| Development | `unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit` | 4GB |
-| Production | `unsloth/Llama-3.2-3B-Instruct-bnb-4bit` | 8GB |
-| Large Scale | `unsloth/Llama-3.1-8B-Instruct-bnb-4bit` | 16GB |
+| Recommended Model | Memory Requirement |
+|-------------------|-------------------|
+| `unsloth/Qwen2.5-0.5B-Instruct-bnb-4bit` | 2GB |
+| `unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit` | 4GB |
+| `unsloth/Qwen2.5-3B-Instruct-bnb-4bit` | 8GB |
+| `unsloth/Qwen2.5-7B-Instruct-bnb-4bit` | 16GB |
 
 ## LoRA Configuration
 
@@ -41,13 +41,13 @@ Low-Rank Adaptation (LoRA) settings for parameter-efficient fine-tuning:
 ```toml
 [fine_tuner]
 # LoRA rank - higher values = more trainable parameters
-rank = 16  # Typical values: 8, 16, 32, 64
+rank = 16  # Typical values: 8, 16, 32, 64, ...
 
 # LoRA alpha - scaling factor for LoRA updates
 lora_alpha = 16  # Usually equal to rank
 
 # Dropout rate for LoRA layers
-lora_dropout = 0.1  # Range: 0.0 - 0.3
+lora_dropout = 0.1  # Typical Range: 0.0 - 0.3
 
 # Target modules for LoRA adaptation
 target_modules = [
@@ -70,7 +70,7 @@ loftq_config = "null"   # LoFTQ configuration
 | 8 | ~0.5M | Fast | Good | Quick prototyping |
 | 16 | ~1M | Medium | Better | General purpose |
 | 32 | ~2M | Slower | High | Quality-focused |
-| 64 | ~4M | Slowest | Highest | Research/production |
+| 64 | ~4M | Slowest | Highest | Research/Production |
 
 ## Dataset Configuration
 
@@ -79,10 +79,10 @@ loftq_config = "null"   # LoFTQ configuration
 ```toml
 [fine_tuner]
 # Required: Training dataset
-training_data_id = "your-username/training-dataset"
+training_data_id = "your-huggingface-username/training-dataset"
 
 # Optional: Validation dataset
-validation_data_id = "your-username/validation-dataset"  # or "null"
+validation_data_id = "your-huggingface-username/validation-dataset"  # or "null"
 
 # Number of processes for dataset loading
 dataset_num_proc = 4
@@ -108,6 +108,7 @@ system_prompt_override_text = "null"  # Custom system prompt (or "null")
 ### Dataset Format Examples
 
 === "Q&A Format"
+    For domain adaptation tasks.
     ```json
     {
         "question": "What is the capital of France?",
@@ -117,21 +118,12 @@ system_prompt_override_text = "null"  # Custom system prompt (or "null")
     ```
 
 === "Instruction Format"
+    For instruction-following tasks.
     ```json
     {
         "instruction": "Summarize the following text:",
         "input": "Long text to summarize...",
         "output": "Brief summary of the text."
-    }
-    ```
-
-=== "Chat Format"
-    ```json
-    {
-        "conversations": [
-            {"role": "user", "content": "Hello!"},
-            {"role": "assistant", "content": "Hi there!"}
-        ]
     }
     ```
 
@@ -142,7 +134,7 @@ system_prompt_override_text = "null"  # Custom system prompt (or "null")
 ```toml
 [fine_tuner]
 # Number of training epochs
-epochs = 3
+epochs = 30
 
 # Learning rate
 learning_rate = 0.0002  # Typical range: 1e-5 to 5e-4
@@ -173,25 +165,31 @@ use_gradient_checkpointing = "unsloth"  # Options: true, false, "unsloth"
 use_flash_attention = true              # Flash attention for efficiency
 packing = false                         # Pack multiple sequences per batch
 
-# Training on responses only (for chat models)
+# Training on responses only
 train_on_responses_only = true
 question_part = "<|im_start|>user\n"      # Question template
 answer_part = "<|im_start|>assistant\n"   # Answer template
 ```
 
+!!! tip "Training on Responses Only"
+    This option allows training the model on the responses directly, which results in higher accuracy. Typically the loss is calculated for the entire completion text, including the question and the system prompt that we provide. However, this option allows us to train the model on the model response section only, which results in higher accuracy.
+
 ## Logging and Monitoring
 
-### Weights & Biases Integration
+### Mlflow Integration
 
 ```toml
 [fine_tuner]
-# W&B project name
-wandb_project_name = "fine-tuning-project"
-
 # Logging configuration
 log_steps = 10          # Log metrics every N steps
 log_first_step = true   # Log the first step
-report_to = "wandb"     # Reporting backend: "wandb", "tensorboard", "none"
+report_to = "mlflow"     # Reporting backend: "wandb", "tensorboard", "mlflow", "none"
+
+[mlflow]
+# MLflow tracking URI and experiment settings
+tracking_uri = "https://your-mlflow-tracking-uri"
+experiment_name = "your-experiment-name"
+run_name = "your-run-name"  # Custom run name or "null" for auto. Recommended to use a versioning scheme like "0.0.1"
 ```
 
 ### Model Saving
@@ -200,7 +198,7 @@ report_to = "wandb"     # Reporting backend: "wandb", "tensorboard", "none"
 [fine_tuner]
 # Checkpoint saving
 save_steps = 20           # Save checkpoint every N steps
-save_total_limit = 3      # Maximum number of checkpoints to keep
+save_total_limit = 3      # Maximum number of checkpoints to keep (older ones will be deleted)
 
 # Hugging Face Hub integration
 push_to_hub = true        # Push final model to Hub
@@ -211,12 +209,15 @@ push_to_hub = true        # Push final model to Hub
 Control how your training runs are named:
 
 ```toml
-[fine_tuner]
+[mlflow]
 # Run name configuration
-run_name = "null"           # Custom run name (or "null" for auto)
+run_name = "0.0.1"          # Custom run name (or "null" for auto)
 run_name_prefix = ""        # Prefix for auto-generated names
 run_name_suffix = ""        # Suffix for auto-generated names
 ```
+
+!!! tip "Recommendation"
+    Use a versioning scheme like `0.0.1` for `run_name` to easily track changes across runs. You can also use prefixes and suffixes to add context, e.g., prefix `exp-` for experiments or suffix `-alpha` for further versioning. (e.g., `exp-0.0.1-v1`).
 
 ### Run Name Examples
 
@@ -295,7 +296,7 @@ rank = 64
 lora_alpha = 32
 
 # More training epochs
-epochs = 5
+epochs = 50
 
 # Lower learning rate for stability
 learning_rate = 0.0001
@@ -320,7 +321,7 @@ report_to = "none"
 
 ```toml
 [fine_tuner]
-epochs = 5
+epochs = 30
 device_train_batch_size = 8
 push_to_hub = true
 save_steps = 100
