@@ -15,7 +15,7 @@ Required for accessing models and datasets from Hugging Face Hub.
    - Choose "Write" permissions for model uploads
    - Copy the generated token
 
-### 2. Weights & Biases API Key
+### 2. Weights & Biases API Key (No need at the moment; you can skip this step)
 
 Required for experiment tracking and logging.
 
@@ -34,60 +34,34 @@ Required for LLM-based evaluation metrics.
    - Click "Create new secret key"
    - Copy the generated key
 
+### 4. Runpod API Key (For GPU Instances)
+
+Required for running fine-tuning jobs on Runpod GPU instances.
+
+1. **Create a Runpod account** at [runpod.io](https://runpod.io)
+2. **Generate an API key**:
+   - Go to runpod account [runpod.io](https://console.runpod.io/)
+   - Go to `Settings > API Keys`
+   - Generate and copy the generated key
+
+### 5. SSH Keys (For Remote Access)
+
+Required for accessing remote servers or instances.
+
+Generate the SSH keys (public and private) and copy them. Add them to GitHub secrets as below.
+
 ## Setting Up Environment Variables
 
-### Method 1: Command Line Arguments (Recommended)
-
-You can pass API keys directly when running the pipeline:
-
-```bash
-# For fine-tuning
-uv run app/finetuner.py --hf-key "your_hf_token" --wandb-key "your_wandb_key"
-
-# For inference  
-uv run app/inferencer.py --hf-key "your_hf_token"
-
-# For evaluation
-uv run app/evaluator.py --openai-key "your_openai_key"
-```
-
-### Method 2: Environment Variables
-
-Set environment variables in your shell:
-
-#### Windows (Command Prompt)
-
-```cmd
-set HF_TOKEN=your_hf_token_here
-set WANDB_TOKEN=your_wandb_key_here
-set OPENAI_API_KEY=your_openai_key_here
-```
-
-#### Windows (PowerShell)
-
-```powershell
-$env:HF_TOKEN="your_hf_token_here"
-$env:WANDB_TOKEN="your_wandb_key_here" 
-$env:OPENAI_API_KEY="your_openai_key_here"
-```
-
-#### macOS/Linux (Bash/Zsh)
-
-```bash
-export HF_TOKEN="your_hf_token_here"
-export WANDB_TOKEN="your_wandb_key_here"
-export OPENAI_API_KEY="your_openai_key_here"
-```
-
-### Method 3: Environment File
-
-Create a `.env` file in the project root (make sure to add it to `.gitignore`):
+In GitHub, go to `Settings > Secrets and variables > Actions` and add the following
 
 ```bash
 # .env file
 HF_TOKEN=your_hf_token_here
-WANDB_TOKEN=your_wandb_key_here
+WANDB_TOKEN=your_wandb_key_here (You can skip this secret for now)
 OPENAI_API_KEY=your_openai_key_here
+RUNPOD_API_KEY=your_runpod_api_key_here
+SSH_PRIVATE_KEY=your_ssh_private_key_here
+SSH_PUBLIC_KEY=your_ssh_public_key_here
 ```
 
 ## Configuration File Setup
@@ -111,23 +85,6 @@ epochs = 3
 learning_rate = 0.0002
 device_train_batch_size = 4
 
-# Weights & Biases
-wandb_project_name = "your-project-name"
-```
-
-### Verify Setup
-
-Test your environment setup:
-
-```bash
-# Test Hugging Face authentication
-uv run python -c "from huggingface_hub import whoami; print(f'Logged in as: {whoami()}')"
-
-# Test Weights & Biases
-uv run python -c "import wandb; wandb.login(); print('W&B authentication successful')"
-
-# Test the pipeline configuration
-uv run python -c "from app.config_manager import get_config_manager; cm = get_config_manager(); print('Config loaded successfully')"
 ```
 
 ## GPU Configuration
@@ -149,19 +106,3 @@ With your environment set up, you're ready to:
 1. [Run your first fine-tuning job](quick-start.md)
 2. [Explore configuration options](../configuration/overview.md)
 3. [Learn about advanced features](../tutorials/advanced-configuration.md)
-
-## Security Best Practices
-
-!!! warning "API Key Security"
-    - Never commit API keys to version control
-    - Use environment variables or command-line arguments
-    - Add `.env` files to your `.gitignore`
-    - Rotate API keys regularly
-    - Use minimal required permissions for each key
-
-!!! tip "Production Deployment"
-    For production deployments, consider using:
-    - Secret management services (AWS Secrets Manager, Azure Key Vault)
-    - CI/CD environment variables
-    - Kubernetes secrets
-    - Docker secrets
