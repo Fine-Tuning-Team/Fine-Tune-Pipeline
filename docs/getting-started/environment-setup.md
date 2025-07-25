@@ -117,3 +117,4 @@ With your environment set up, you're ready to:
 1. [Run your first fine-tuning job](quick-start.md)
 2. [Explore configuration options](../configuration/overview.md)
 3. [Learn about advanced features](../tutorials/advanced-configuration.md)
+4. [Set up MLFlow server](choreo-setup.md)

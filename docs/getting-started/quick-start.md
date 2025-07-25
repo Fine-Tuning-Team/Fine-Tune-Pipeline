@@ -7,6 +7,7 @@ This guide will walk you through running your first fine-tuning job with the Fin
 Before you begin, make sure you have:
 
 - ✅ [Set up your environment](environment-setup.md) with API keys
+- ✅ [Configured your MLFlow server](choreo-setup.md) to log experiments
 
 ## Step 1: Navigate to the Github repository and branch
 
