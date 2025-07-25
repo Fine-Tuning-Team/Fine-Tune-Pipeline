@@ -85,8 +85,9 @@ plugins:
 nav:
   - Home: index.md
   - Getting Started:
-    - Quick Start: getting-started/quick-start.md
     - Environment Setup: getting-started/environment-setup.md
+    - Choreo Setup: getting-started/choreo-setup.md
+    - Quick Start: getting-started/quick-start.md
   - Configuration:
     - Overview: configuration/overview.md
     - Fine-Tuner Config: configuration/fine-tuner.md

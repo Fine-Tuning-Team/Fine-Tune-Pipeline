@@ -4,14 +4,14 @@ The Fine-Tune Pipeline uses a TOML-based configuration system that allows you to
 
 ## Configuration Structure
 
-The configuration file is organized into four main sections:
+The configuration file is organized into five main sections:
 
 ```toml
-[mlflow]         # MLflow experiment tracking
-[pipeline]       # Pipeline orchestration settings
 [fine_tuner]     # Fine-tuning configuration
 [inferencer]     # Inference configuration  
 [evaluator]      # Evaluation configuration
+[mlflow]         # MLflow experiment tracking
+[pipeline]       # Pipeline orchestration settings
 ```
 
 ## Configuration Loading
@@ -39,7 +39,7 @@ wandb_project_name = "${WANDB_PROJECT}"
     [mlflow]
     tracking_uri = "http://localhost:5000"
     experiment_name = "dev-fine-tune-pipeline"
-    
+
     [pipeline]
     enable_finetuning = true
     enable_inference = true
@@ -57,7 +57,7 @@ wandb_project_name = "${WANDB_PROJECT}"
     [mlflow]
     tracking_uri = "https://mlflow.example.com"
     experiment_name = "prod-fine-tune-pipeline"
-    
+
     [pipeline]
     enable_finetuning = true
     enable_inference = true
@@ -65,7 +65,7 @@ wandb_project_name = "${WANDB_PROJECT}"
     
     [fine_tuner]
     base_model_id = "unsloth/Llama-3.2-3B-Instruct-bnb-4bit"
-    epochs = 5
+    epochs = 20
     device_train_batch_size = 8
     push_to_hub = true
     ```
@@ -102,17 +102,7 @@ The pipeline validates configuration at startup and will report errors for:
 
 - Missing required fields
 - Invalid data types
-- Conflicting parameter combinations
-- Invalid model or dataset IDs
-
-### Common Validation Errors
-
-```text
-❌ base_model_id is required
-❌ epochs must be a positive integer
-❌ learning_rate must be between 0 and 1
-❌ Cannot use both load_in_4bit and load_in_8bit
-```
+- Warnings on additional fields not used by the pipeline
 
 ## Environment-Specific Configurations
 
@@ -151,13 +141,6 @@ device_train_batch_size = 8  # Add new value
 ✅ **Do**: Commit base configuration files
 ❌ **Don't**: Commit files with sensitive API keys
 
-```gitignore
-# .gitignore
-config.local.toml
-.env
-*.secret.toml
-```
-
 ### 2. Documentation
 
 Always document your configuration choices:
@@ -172,23 +155,13 @@ device_train_batch_size = 4
 grad_accumulation = 4  # Effective batch size: 16
 ```
 
-### 3. Environment-Specific Values
-
-Use environment variables for values that change between environments:
-
-```toml
-[fine_tuner]
-wandb_project_name = "${WANDB_PROJECT:-fine-tuning-dev}"
-push_to_hub = "${PUSH_TO_HUB:-false}"
-```
-
 ## Configuration Sections
 
 | Section | Purpose | Required |
 |---------|---------|----------|
 | `[fine_tuner]` | Model training configuration | ✅ Yes |
-| `[inferencer]` | Inference and prediction settings | ❌ Optional |
-| `[evaluator]` | Evaluation metrics and settings | ❌ Optional |
+| `[inferencer]` | Inference and prediction settings | ✅ Yes |
+| `[evaluator]` | Evaluation metrics and settings | ✅ Yes |
 
 ## Advanced Configuration
 

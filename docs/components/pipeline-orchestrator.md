@@ -8,7 +8,7 @@ The `FineTunePipeline` class in `app/pipeline_invoker.py` provides:
 
 1. **Phase Coordination**: Manages fine-tuning, inference, and evaluation phases
 2. **MLflow Integration**: Complete experiment tracking and artifact logging
-3. **Configuration Management**: Centralized configuration handling
+3. **Environment Variables Management**: Centralized environment variables handling
 4. **Error Handling**: Robust error management with detailed logging
 
 ## Key Features

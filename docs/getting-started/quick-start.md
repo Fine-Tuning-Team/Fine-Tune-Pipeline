@@ -7,13 +7,13 @@ This guide will walk you through running your first fine-tuning job with the Fin
 Before you begin, make sure you have:
 
 - ✅ [Set up your environment](environment-setup.md) with API keys
-- ✅ A GPU instance for training
+- ✅ [Configured your MLFlow server](choreo-setup.md) to log experiments
 
 ## Step 1: Navigate to the Github repository and branch
 
-First, go to the GitHub repository and switch to the branch which aligns with the model you are trying to fine-tune. For example, if you are working with the Qwen2.5 model, switch to the `lora-qwen2.5` branch.
+First, go to the GitHub repository of the pipeline and switch to the branch which aligns with the model you are trying to fine-tune. For example, if you are working with the Qwen2.5 model, switch to the `lora-qwen2.5` branch.
 
-If such a branch does not exist, make a branch from the `lora-dev` branch and name it according to the model you are working with, e.g., `lora-modelXYZ`.
+If such a branch does not exist, make a branch from the `lora-dev` branch and name it according to the model you are working with, e.g., `lora-model_XYZ`.
 
 ## Step 2: Understanding the Default Configuration
 
@@ -21,16 +21,41 @@ In the files, you will find the `config.toml` file. The pipeline comes with a pr
 
 ```toml
 [fine_tuner]
-# Base model - A small, efficient model for quick testing
+# Model settings
 base_model_id = "unsloth/Qwen2.5-0.5B-Instruct-bnb-4bit"
+max_sequence_length = 4096
 
-# Training data - Default dataset for question-answering
-training_data_id = "rtweera/simple_implicit_n_qa_results_v2"
+# Training data
+training_data_id = "your-huggingface-username/your-training-dataset"
+validation_data_id = "your-huggingface-username/your-validation-dataset"  # Optional
 
-# Training settings - Optimized for quick runs
+# Training parameters
 epochs = 3
-device_train_batch_size = 4
 learning_rate = 0.0002
+device_train_batch_size = 4
+
+[inferencer]
+# Model settings
+max_sequence_length = 4096
+max_new_tokens = 512
+temperature = 0.7
+min_p = 0.1
+
+# Hugging Face user ID
+hf_user_id = "your-huggingface-username"
+
+[evaluator]
+# Metrics settings
+metrics = ["bleu_score", "rouge_score", "factual_correctness"]
+
+# Hugging Face user ID
+hf_user_id = "your-huggingface-username"
+
+[mlflow]
+# MLflow settings
+tracking_uri = "https://your-mlflow-tracking-uri"
+experiment_name = "your-experiment-name"
+run_name = "0.0.1"  # Increment this for each run
 ```
 
 !!! tip "First Run Recommendation"
@@ -108,7 +133,7 @@ Congratulations! 🎉 You've successfully run your first fine-tuning pipeline. H
 
 1. **Use Your Own Data**: Replace `training_data_id`, `testing_data_id` with your datasets
 2. **Try Different Models**: Experiment with larger models like Llama, Gemma by changing `base_model_id`
-3. **Adjust Hyperparameters**: Modify learning rate, batch size, epochs
+3. **Adjust Hyperparameters**: Modify learning rate, batch size, epochs etc.
 4. **Explore Advanced Features**: Check out the [Advanced Configuration](../tutorials/advanced-configuration.md) guide
 
 ### See Also
