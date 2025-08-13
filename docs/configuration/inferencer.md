@@ -13,7 +13,7 @@ load_in_4bit = true
 load_in_8bit = false
 
 # Dataset configuration
-testing_data_id = "your-username/test-dataset"
+testing_data_id = "your-huggingface-username/test-dataset"
 question_column = "question"
 ground_truth_column = "answer"
 system_prompt_column = "null"  # Optional
@@ -25,11 +25,8 @@ use_cache = true
 temperature = 0.7
 min_p = 0.1
 
-# Model location
+# Hugging Face user ID
 hf_user_id = "your-username"
-run_name = "null"  # Use latest model if null
-run_name_prefix = ""
-run_name_suffix = ""
 ```
 
 ## Model Configuration
@@ -51,13 +48,7 @@ load_in_8bit = false  # Balanced option
 
 ### Model Location
 
-The inferencer automatically constructs the model path using:
-
-```
-{hf_user_id}/{run_name}
-```
-
-If `run_name` is "null", it uses the most recent model from your account.
+The local model is loaded which will be saved in the `models` directory by the fine tuner.
 
 ## Dataset Configuration
 
@@ -103,16 +94,11 @@ use_cache = true
 
 ```toml
 [inferencer]
-# Temperature (0.0 = deterministic, 1.0 = creative)
+# Temperature (0.0 = deterministic, 1.0 or more = creative)
 temperature = 0.7
 
 # Min-p sampling (alternative to top-p)
 min_p = 0.1
-
-# Additional parameters (if needed)
-top_p = 0.9
-top_k = 50
-repetition_penalty = 1.1
 ```
 
 ## Performance Tuning
@@ -136,9 +122,6 @@ use_cache = true
 
 # Optimal sequence length
 max_sequence_length = 4096
-
-# Batch processing (if supported)
-batch_size = 1
 ```
 
 ## Output Configuration
@@ -146,46 +129,12 @@ batch_size = 1
 The inferencer outputs results to `inferencer_output.jsonl` with this format:
 
 ```json
-{
-    "question": "What is machine learning?",
-    "predicted_answer": "Machine learning is a subset of artificial intelligence...",
+{   
+    "system_prompt": "You are a helpful assistant specialized in...",
+    "user_prompt": "What is machine learning?",
+    "assistant_response": "Machine learning is a subset of artificial intelligence...",
     "ground_truth": "ML is a method of data analysis...",
-    "metadata": {
-        "model_id": "your-username/model-name",
-        "generation_config": {...},
-        "inference_time": 1.23
-    }
 }
-```
-
-## Usage Examples
-
-### Basic Usage
-
-```bash
-# Run inference with default settings
-uv run app/inferencer.py --hf-key "your_token"
-```
-
-### Custom Configuration
-
-```bash
-# Use specific model
-export HF_TOKEN="your_token"
-uv run app/inferencer.py
-```
-
-### Programmatic Usage
-
-```python
-from app.inferencer import Inferencer
-
-# Initialize with configuration
-inferencer = Inferencer()
-
-# Run inference
-results = inferencer.run()
-print(f"Generated {len(results)} predictions")
 ```
 
 ## Common Configurations
@@ -224,26 +173,34 @@ temperature = 0.0  # Deterministic
 Common issues and solutions:
 
 ### Model Not Found
-```
+
+```sh
 Error: Model not found: username/model-name
 ```
+
 **Solution**: Check model was uploaded and name is correct
 
 ### Out of Memory
-```
+
+```sh
 Error: CUDA out of memory
 ```
+
 **Solution**: Enable quantization and reduce sequence length
+
 ```toml
 load_in_4bit = true
 max_sequence_length = 2048
 ```
 
 ### Generation Issues
-```
+
+```sh
 Error: Generated text is empty
 ```
+
 **Solution**: Adjust generation parameters
+
 ```toml
 max_new_tokens = 100  # Increase
 temperature = 0.8     # Add randomness

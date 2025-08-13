@@ -16,23 +16,15 @@ The `FineTune` class in `app/finetuner.py` handles the complete fine-tuning pipe
 - ✅ **LoRA Fine-Tuning**: Memory-efficient training with Low-Rank Adaptation
 - ✅ **4-bit/8-bit Quantization**: Reduce memory usage without sacrificing quality
 - ✅ **Chat Template Support**: Automatic formatting for conversational models
-- ✅ **Weights & Biases Integration**: Comprehensive experiment tracking
+- ✅ **MLflow Integration**: Comprehensive experiment tracking and model logging
+- ✅ **Weights & Biases Integration**: Additional experiment tracking capabilities
 - ✅ **Hub Integration**: Automatic model publishing to Hugging Face
 - ✅ **Gradient Checkpointing**: Memory optimization for large models
 - ✅ **Response-Only Training**: Train only on assistant responses
 
 ## Architecture
 
-```mermaid
-graph TD
-    A[Configuration] --> B[Model Loading]
-    B --> C[Dataset Processing]
-    C --> D[LoRA Setup]
-    D --> E[Training Loop]
-    E --> F[Model Saving]
-    E --> G[W&B Logging]
-    F --> H[Hub Upload]
-```
+![Fine-Tuner Architecture](../resources/fine-tuner-arch.png)
 
 ## Usage
 
@@ -85,6 +77,7 @@ model, tokenizer = tuner.load_base_model_and_tokenizer()
 ```
 
 **Features:**
+
 - Automatic dtype selection (bfloat16 on supported hardware)
 - 4-bit/8-bit quantization support
 - Gated model authentication
@@ -99,6 +92,7 @@ peft_model = tuner.get_peft_model()
 ```
 
 **Configuration:**
+
 - Rank and alpha values for adaptation strength
 - Target modules for LoRA application
 - Dropout and bias handling
@@ -132,6 +126,7 @@ formatted_data = tuner.apply_chat_template_to_conversations(conversations)
 ```
 
 **Features:**
+
 - Automatic template detection
 - Consistent formatting across models
 - Support for various chat formats (ChatML, Llama, etc.)

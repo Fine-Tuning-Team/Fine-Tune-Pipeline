@@ -85,15 +85,16 @@ plugins:
 nav:
   - Home: index.md
   - Getting Started:
-    - Installation: getting-started/installation.md
-    - Quick Start: getting-started/quick-start.md
     - Environment Setup: getting-started/environment-setup.md
+    - Choreo Setup: getting-started/choreo-setup.md
+    - Quick Start: getting-started/quick-start.md
   - Configuration:
     - Overview: configuration/overview.md
     - Fine-Tuner Config: configuration/fine-tuner.md
     - Inferencer Config: configuration/inferencer.md
     - Evaluator Config: configuration/evaluator.md
   - Components:
+    - Pipeline Orchestrator: components/pipeline-orchestrator.md
     - Fine-Tuner: components/fine-tuner.md
     - Inferencer: components/inferencer.md
     - Evaluator: components/evaluator.md

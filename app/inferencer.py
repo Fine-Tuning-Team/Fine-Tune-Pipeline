@@ -92,7 +92,7 @@ class Inferencer:
             )
         untokenized_msg = self.tokenizer.apply_chat_template(
             conversation, add_generation_prompt=True, tokenize=False
-        )  # BUG
+        )
         return untokenized_msg
 
     def generate_a_response(self, data_row):

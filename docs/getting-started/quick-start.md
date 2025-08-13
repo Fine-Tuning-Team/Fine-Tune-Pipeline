@@ -6,41 +6,56 @@ This guide will walk you through running your first fine-tuning job with the Fin
 
 Before you begin, make sure you have:
 
-- ✅ [Installed the pipeline](installation.md)
 - ✅ [Set up your environment](environment-setup.md) with API keys
-- ✅ A GPU (recommended) or CPU for training
+- ✅ [Configured your MLFlow server](choreo-setup.md) to log experiments
 
-## Step 1: Verify Your Setup
+## Step 1: Navigate to the Github repository and branch
 
-First, let's make sure everything is working:
+First, go to the GitHub repository of the pipeline and switch to the branch which aligns with the model you are trying to fine-tune. For example, if you are working with the Qwen2.5 model, switch to the `lora-qwen2.5` branch.
 
-```bash
-# Navigate to your project directory
-cd Fine-Tune-Pipeline
-
-# Sync dependencies
-uv sync
-
-# Test the installation
-uv run python -c "from app.finetuner import FineTune; print('✅ Setup verified!')"
-```
+If such a branch does not exist, make a branch from the `lora-dev` branch and name it according to the model you are working with, e.g., `lora-model_XYZ`.
 
 ## Step 2: Understanding the Default Configuration
 
-The pipeline comes with a pre-configured setup in `config.toml`. Let's look at the key settings:
+In the files, you will find the `config.toml` file. The pipeline comes with a pre-configured setup in `config.toml`. Let's look at the key settings:
 
 ```toml
 [fine_tuner]
-# Base model - A small, efficient model for quick testing
+# Model settings
 base_model_id = "unsloth/Qwen2.5-0.5B-Instruct-bnb-4bit"
+max_sequence_length = 4096
 
-# Training data - Default dataset for question-answering
-training_data_id = "rtweera/simple_implicit_n_qa_results_v2"
+# Training data
+training_data_id = "your-huggingface-username/your-training-dataset"
+validation_data_id = "your-huggingface-username/your-validation-dataset"  # Optional
 
-# Training settings - Optimized for quick runs
+# Training parameters
 epochs = 3
-device_train_batch_size = 4
 learning_rate = 0.0002
+device_train_batch_size = 4
+
+[inferencer]
+# Model settings
+max_sequence_length = 4096
+max_new_tokens = 512
+temperature = 0.7
+min_p = 0.1
+
+# Hugging Face user ID
+hf_user_id = "your-huggingface-username"
+
+[evaluator]
+# Metrics settings
+metrics = ["bleu_score", "rouge_score", "factual_correctness"]
+
+# Hugging Face user ID
+hf_user_id = "your-huggingface-username"
+
+[mlflow]
+# MLflow settings
+tracking_uri = "https://your-mlflow-tracking-uri"
+experiment_name = "your-experiment-name"
+run_name = "0.0.1"  # Increment this for each run
 ```
 
 !!! tip "First Run Recommendation"
@@ -48,13 +63,13 @@ learning_rate = 0.0002
 
 ## Step 3: Run Your First Fine-Tuning Job
 
-Now let's run the fine-tuner with your API keys:
+Make a small change to the `config.toml` file. For example, bump the `run_name` under `[MLFLOW]` section by 0.0.1.
 
-```bash
-uv run app/finetuner.py --hf-key "your_hf_token" --wandb-key "your_wandb_key"
-```
+This will trigger the pipeline to run. This will consist of 3 stages: `fine-tuning`, `inference`, and `evaluation`.
 
-### What Happens During Training
+### 1. Fine-tuning
+
+#### 1.1 What Happens During Fine Tuning
 
 1. **Model Loading**: Downloads and loads the base model (Qwen2.5-0.5B)
 2. **Data Processing**: Downloads and processes the training dataset
@@ -62,95 +77,52 @@ uv run app/finetuner.py --hf-key "your_hf_token" --wandb-key "your_wandb_key"
 4. **Training**: Runs 3 epochs of training with progress tracking
 5. **Saving**: Saves the model locally and pushes to Hugging Face Hub
 
-### Expected Output
+#### 1.2 Expected Output
 
-You should see output similar to this:
+You should see a final output similar to this in github actions:
 
 ```text
---- ✅ Login to Hugging Face Hub successful. ---
---- ✅ Training dataset loaded: rtweera/simple_implicit_n_qa_results_v2 ---
---- ✅ No validation dataset provided. Skipping validation. ---
---- ✅ Model and tokenizer loaded successfully. ---
---- ✅ Data preprocessing completed. ---
-Run name set to: fine-tuned-model-20250629-143022
---- ✅ Weights & Biases setup completed. ---
---- ✅ Trainer initialized successfully. ---
---- ✅ Starting training... ---
-
-Training Progress:
-  0%|          | 0/150 [00:00<?, ?it/s]
- 10%|█         | 15/150 [00:30<04:30,  2.0s/it]
- 20%|██        | 30/150 [01:00<04:00,  2.0s/it]
-...
-
---- ✅ Training completed with stats: {...} ---
---- ✅ Model and tokenizer saved to ./models/fine_tuned locally and to Hugging Face Hub ---
 --- ✅ Fine-tuning completed successfully. ---
 ```
 
-## Step 4: Test Your Fine-Tuned Model
+### 2. Inference
 
-After training, let's test the model with inference:
+#### 2.1 What Happens During Inferencing
 
-### 4.1 Update Configuration for Inference
+After training, the pipeline will automatically run inference. This involves:
 
-First, update your `config.toml` to use your newly trained model:
+1. **Model Loading**: Loads the fine-tuned model
+2. **Data Preparation**: Downloads and processes the test dataset for inference
+3. **Inference Execution**: Runs inference with the configured parameters in `config.toml`
+4. **Output Generation**: Saves results in JSONL format
+5. **Pushing Results**: Uploads inference results to Hugging Face Hub
 
-```toml
-[inferencer]
-# Use your Hugging Face username and the generated model name
-hf_user_id = "your-hf-username"
-# The run_name from training (or leave as "null" to use the latest)
-run_name = "null"
+#### 2.2 Expected Output
 
-# Test dataset
-testing_data_id = "rtweera/user_centric_results_v2"
+You should see a final output similar to this in github actions:
+
+```text
+--- ✅ Inference completed successfully. ---
 ```
 
-### 4.2 Run Inference
+### 3. Evaluation
 
-```bash
-uv run app/inferencer.py --hf-key "your_hf_token"
-```
+#### 3.1 What Happens During Evaluation
 
-This will generate predictions and save them to `inferencer_output.jsonl`.
+After inference, the pipeline will automatically run evaluation. This includes:
 
-## Step 5: Evaluate Your Model
+1. **Loading Results**: Loads the inference output
+2. **Evaluation Metrics**: Computes various metrics like Factual Correctness, Answer Accuracy, and more with RAGAS
+3. **Reporting**: Generates detailed reports in Excel and JSON formats
+4. **Logging**: Saves evaluation metrics to MLflow
+5. **Pushing Results**: Uploads evaluation results to Hugging Face Hub
 
-Finally, let's evaluate how well your model performed:
+#### 3.2 Expected Output
 
-```bash
-uv run app/evaluator.py --openai-key "your_openai_key"
-```
+You should see a final output similar to this in github actions:
 
-This will generate:
-
-- `evaluator_output_summary.json` - Overall performance metrics
-- `evaluator_output_detailed.xlsx` - Detailed evaluation results
-
-## Step 6: Review Results
-
-### Weights & Biases Dashboard
-
-1. Go to [wandb.ai](https://wandb.ai)
-2. Navigate to your project: `fine-tuning-project-ci-cd`
-3. View training metrics, loss curves, and system metrics
-
-### Local Results
-
-Check the generated files:
-
-```bash
-# View inference results
-head -5 inferencer_output.jsonl
-
-# View evaluation summary
-cat evaluator_output_summary.json
-
-# Open detailed results in Excel
-start evaluator_output_detailed.xlsx  # Windows
-# or
-open evaluator_output_detailed.xlsx   # macOS
+```text
+--- ✅ Evaluation completed successfully. ---
 ```
 
 ## Next Steps
@@ -159,11 +131,12 @@ Congratulations! 🎉 You've successfully run your first fine-tuning pipeline. H
 
 ### Customize Your Training
 
-1. **Use Your Own Data**: Replace `training_data_id` with your dataset
-2. **Try Different Models**: Experiment with larger models like Llama or Mistral
-3. **Adjust Hyperparameters**: Modify learning rate, batch size, epochs
+1. **Use Your Own Data**: Replace `training_data_id`, `testing_data_id` with your datasets
+2. **Try Different Models**: Experiment with larger models like Llama, Gemma by changing `base_model_id`
+3. **Adjust Hyperparameters**: Modify learning rate, batch size, epochs etc.
+4. **Explore Advanced Features**: Check out the [Advanced Configuration](../tutorials/advanced-configuration.md) guide
 
-### Advanced Features
+### See Also
 
 1. **[Advanced Configuration](../tutorials/advanced-configuration.md)** - Explore all configuration options
 2. **[CI/CD Integration](../tutorials/ci-cd-integration.md)** - Set up automated training pipelines
@@ -189,16 +162,16 @@ If you encounter issues:
 
 !!! warning "Dataset Not Found"
     If the dataset fails to load, check:
-    - Your internet connection
-    - The dataset ID is correct
-    - You have access to the dataset (some require authentication)
+        - Your internet connection
+        - The dataset ID is correct
+        - You have access to the dataset (some require authentication)
 
 !!! tip "Training Too Slow"
-    For faster training on CPU:
+    For faster training:
     ```toml
-    device_train_batch_size = 1
-    epochs = 1
-    max_sequence_length = 1024  # Reduce sequence length
+    learning_rate = 0.0005  # Increase learning rate
+    epochs = 2              # Reduce number of epochs
+    device_train_batch_size = 8  # Increase batch size if GPU allows
     ```
 
 Happy fine-tuning! 🚀

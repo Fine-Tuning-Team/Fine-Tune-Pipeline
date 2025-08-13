@@ -9,14 +9,9 @@ The `[evaluator]` section controls the model evaluation process, which measures 
 # Evaluation metrics to compute
 metrics = ["bleu_score", "rouge_score", "semantic_similarity"]
 
-# LLM for advanced evaluation (optional)
+# LLM for advanced evaluation
 llm = "gpt-4o-mini"
 embedding = "text-embeddings-3-small"
-
-# Run configuration
-run_name = "null"
-run_name_prefix = "eval-"
-run_name_suffix = ""
 ```
 
 ## Supported Metrics
@@ -32,11 +27,13 @@ metrics = [
 ```
 
 **BLEU Score**:
-- Range: 0-100 (higher is better)
+
+- Range: 0-1 (higher is better)
 - Good for: Translation, text generation
 - Measures: Word overlap with reference
 
 **ROUGE Score**:
+
 - Range: 0-1 (higher is better)  
 - Good for: Summarization, paraphrasing
 - Measures: N-gram recall
@@ -46,11 +43,11 @@ metrics = [
 ```toml
 [evaluator]
 metrics = [
-    "factual_correctness",  # Fact verification
-    "semantic_similarity",  # Meaning similarity
-    "answer_accuracy",      # Answer correctness
-    "answer_relevancy",     # Response relevance
-    "answer_correctness"    # Overall correctness
+    "factual_correctness",  # compares and evaluates the factual accuracy of the generated response with the reference
+    "semantic_similarity",  # assessment of the semantic resemblance between the generated answer and the ground truth using a bi-encoder
+    "answer_accuracy",      # measures the agreement between a model’s response and a reference ground truth for a given question.
+    "answer_relevancy",     # measures how relevant a response is to the user input.
+    "answer_correctness"    # gauging the accuracy of the generated answer when compared to the ground truth.
 ]
 
 # Required for LLM-based metrics
@@ -59,14 +56,18 @@ embedding = "text-embeddings-3-small"
 ```
 
 **Factual Correctness**:
+
 - Uses LLM to verify factual accuracy
 - Good for: QA, factual content
 - Expensive but highly accurate
 
 **Semantic Similarity**:
+
 - Uses embeddings to measure meaning similarity
 - Good for: Paraphrasing, content similarity
 - Fast and cost-effective
+
+More details on LLM-based metrics can be found in the [RAGAS documentation](https://github.com/explodinggradients/ragas/tree/main/docs/concepts/metrics/available_metrics)
 
 ## LLM Configuration
 
@@ -77,7 +78,7 @@ embedding = "text-embeddings-3-small"
 # Recommended models
 llm = "gpt-4o-mini"      # Cost-effective, good quality
 # llm = "gpt-4o"         # Higher quality, more expensive
-# llm = "gpt-3.5-turbo"  # Fastest, lower cost
+# llm = "gpt-4.1"        # Latest model, best performance
 
 # Embedding models
 embedding = "text-embeddings-3-small"  # Recommended
@@ -94,20 +95,6 @@ embedding = "text-embeddings-3-small"  # Recommended
 
 ## Run Configuration
 
-### Naming Convention
-
-```toml
-[evaluator]
-# Custom run name
-run_name = "experiment-v1"
-
-# Or auto-generated with prefix/suffix
-run_name = "null"
-run_name_prefix = "eval-qa-"
-run_name_suffix = "-final"
-# Results in: eval-qa-20250629-143022-final
-```
-
 ## Input Data Format
 
 The evaluator expects:
@@ -122,7 +109,6 @@ The evaluator expects:
     "question": "What is machine learning?",
     "predicted_answer": "Machine learning is a subset of AI...",
     "ground_truth": "ML is a method of data analysis...",
-    "metadata": {...}
 }
 ```
 
@@ -134,22 +120,17 @@ The evaluator generates:
 
 ```json
 {
-    "overall_scores": {
-        "bleu_score": 25.4,
-        "rouge_score": 0.68,
-        "semantic_similarity": 0.82
-    },
-    "metadata": {
-        "total_samples": 100,
-        "evaluation_time": "2023-06-29T14:30:22",
-        "metrics_used": ["bleu_score", "rouge_score"]
-    }
+    "bleu_score": 25.4,
+    "rouge_score": 0.68,
+    "semantic_similarity": 0.82,
+    "factual_correctness": 0.90,
 }
 ```
 
 ### 2. Detailed Report (`evaluator_output_detailed.xlsx`)
 
 Excel file with:
+
 - Individual scores per sample
 - Question-answer pairs
 - Metric breakdowns
@@ -186,45 +167,16 @@ llm = "gpt-4o"
 embedding = "text-embeddings-3-large"
 ```
 
-## Usage Examples
-
-### Basic Evaluation
-
-```bash
-# Evaluate with traditional metrics only
-uv run app/evaluator.py
-```
-
-### Full Evaluation with LLM
-
-```bash
-# Include LLM-based metrics
-uv run app/evaluator.py --openai-key "your_openai_key"
-```
-
-### Programmatic Usage
-
-```python
-from app.evaluator import Evaluator
-
-# Initialize evaluator
-evaluator = Evaluator()
-
-# Run evaluation
-results = evaluator.run()
-print(f"Overall BLEU score: {results['bleu_score']}")
-```
-
 ## Metric Interpretation
 
 ### BLEU Score Guidelines
 
 | Score Range | Quality | Interpretation |
 |-------------|---------|----------------|
-| 0-10 | Poor | Almost no overlap with reference |
-| 10-20 | Fair | Some overlap, needs improvement |
-| 20-40 | Good | Reasonable quality |
-| 40+ | Excellent | High-quality generation |
+| 0-0.10 | Poor | Almost no overlap with reference |
+| 0.10-0.20 | Fair | Some overlap, needs improvement |
+| 0.20-0.40 | Good | Reasonable quality |
+| 0.40+ | Excellent | High-quality generation |
 
 ### ROUGE Score Guidelines
 
@@ -293,11 +245,10 @@ embedding = "null"
 ### API Key Issues
 
 ```bash
-# Error: OpenAI API key not provided
-export OPENAI_API_KEY="your_key"
-# or
-uv run app/evaluator.py --openai-key "your_key"
+Error: OpenAI API key not provided
 ```
+
+Provide API key in github secrets.
 
 ### Rate Limiting
 
@@ -313,6 +264,7 @@ metrics = ["bleu_score", "rouge_score"]
 ### Data Format Issues
 
 Ensure your data matches the expected format:
+
 - Questions and answers are strings
 - Ground truth is available
 - No missing or null values in required fields

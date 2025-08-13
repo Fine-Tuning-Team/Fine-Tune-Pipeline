@@ -9,7 +9,6 @@ from datasets import (
     IterableDataset,
     IterableDatasetDict,
 )
-import mlflow.data.huggingface_dataset
 from ragas import evaluate
 from ragas.dataset_schema import EvaluationResult
 from ragas.embeddings import embedding_factory
@@ -378,12 +377,12 @@ class Evaluator:
 
         # Load datasets from huggingface
         summary_dataset = load_huggingface_dataset(self.summary_dataset_id)
-        summary_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(
+        summary_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(  # type: ignore
             summary_dataset
         )
         print(f"--- ✅ Summary dataset loaded from {self.summary_dataset_id} ---")
         detailed_dataset = load_huggingface_dataset(self.detailed_dataset_id)
-        detailed_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface(
+        detailed_dataset_for_mlflow = mlflow.data.huggingface_dataset.from_huggingface( # type: ignore
             detailed_dataset
         )
         print(f"--- ✅ Detailed dataset loaded from {self.detailed_dataset_id} ---")
