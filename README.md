@@ -14,7 +14,7 @@ A comprehensive fine-tuning pipeline for language models with evaluation and inf
 
 ## 📚 Documentation
 
-Complete documentation is available at: **[https://your-username.github.io/Fine-Tune-Pipeline](https://your-username.github.io/Fine-Tune-Pipeline)**
+Complete documentation is available at: **[https://fine-tuning-team.github.io/Fine-Tune-Pipeline](https://fine-tuning-team.github.io/Fine-Tune-Pipeline)**
 
 ### Quick Links
 
