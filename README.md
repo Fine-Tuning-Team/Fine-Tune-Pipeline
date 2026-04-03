@@ -3,7 +3,7 @@
 
 A comprehensive fine-tuning pipeline for language models with evaluation and inference capabilities, designed for use with GitHub Actions or Jenkins.
 
-## 🚀 Features
+## Features
 
 - **Easy Configuration**: TOML-based configuration system
 - **Modern Architecture**: Built with Unsloth, Transformers, and TRL
@@ -12,7 +12,7 @@ A comprehensive fine-tuning pipeline for language models with evaluation and inf
 - **Memory Efficient**: 4-bit/8-bit quantization support
 - **Experiment Tracking**: Weights & Biases integration
 
-## 📚 Documentation
+## Documentation
 
 Complete documentation is available at: **[https://fine-tuning-team.github.io/Fine-Tune-Pipeline](https://fine-tuning-team.github.io/Fine-Tune-Pipeline)**
 
@@ -23,7 +23,7 @@ Complete documentation is available at: **[https://fine-tuning-team.github.io/Fi
 - [Configuration Reference](https://your-username.github.io/Fine-Tune-Pipeline/configuration/overview/)
 - [API Documentation](https://your-username.github.io/Fine-Tune-Pipeline/api-reference/)
 
-## 🏃 Quick Start
+## Quick Start
 
 1. **Install dependencies**:
 
@@ -56,7 +56,7 @@ Complete documentation is available at: **[https://fine-tuning-team.github.io/Fi
    uv run app/evaluator.py --openai-key "your_openai_key"
    ```
 
-## 🏗️ Architecture
+## Architecture
 
 The pipeline consists of three main components:
 
@@ -71,7 +71,7 @@ The pipeline consists of three main components:
 - Mistral models
 - Any model compatible with Unsloth
 
-## 🛠️ Development
+## Development
 
 ### Building Documentation
 
@@ -92,15 +92,15 @@ uv run mkdocs build
 uv run pytest
 ```
 
-## 🤝 Contributing
+## Contributing
 
 Please read our [Contributing Guide](https://your-username.github.io/Fine-Tune-Pipeline/contributing/) for details on how to contribute to this project.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - [Unsloth](https://github.com/unslothai/unsloth) for efficient fine-tuning
 - [Hugging Face](https://huggingface.co/) for models and datasets
